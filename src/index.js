@@ -62,7 +62,7 @@ async function handleEventsRequest(request, env, ctx) {
     try {
       const fetchUrl = rawUrl.trim().replace(/^webcal:\/\//i, "https://");
       const res = await fetch(fetchUrl, {
-        headers: { "User-Agent": "MyFamilycalendarWorker/1.0" }
+        headers: { "User-Agent": "MyFamilyCalendarWorker/1.0" }
       });
 
       if (!res.ok) {
@@ -149,42 +149,4 @@ function parseIcsEvents(icsText, memberId, windowStart, windowEnd, opts) {
         const endJs = occ.endDate ? icalTimeToLocalDate(occ.endDate, isAllDay) : startJs;
 
         if (startJs && endJs && endJs >= windowStart && startJs <= windowEnd) {
-          results.push(formatEvent(memberId, summary, startJs, endJs, isAllDay, location, description));
-        }
-      }
-    } else {
-      const isAllDay = Boolean(event.startDate && event.startDate.isDate);
-      const startJs = icalTimeToLocalDate(event.startDate, false);
-      const endJs = event.endDate ? icalTimeToLocalDate(event.endDate, isAllDay) : startJs;
-
-      if (startJs && endJs && endJs >= windowStart && startJs <= windowEnd) {
-        results.push(formatEvent(memberId, summary, startJs, endJs, isAllDay, location, description));
-      }
-    }
-  }
-
-  return results;
-}
-
-function formatEvent(memberId, title, startJs, endJs, isAllDay, location, notes) {
-  return {
-    id: `${memberId}-${startJs.getTime()}-${title.slice(0, 12)}`,
-    memberId,
-    title,
-    start: startJs.toISOString(),
-    end: endJs.toISOString(),
-    allDay: Boolean(isAllDay),
-    location,
-    notes
-  };
-}
-
-function jsonResponse(body, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      ...extraHeaders
-    }
-  });
-}
+          results.push(formatEvent(
