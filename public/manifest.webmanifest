@@ -1,6 +1,6 @@
 {
-  "name": "my-family-calender",
-  "short_name": "my-family-calender",
+  "name": "my-family-calendar",
+  "short_name": "my-family-calendar",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F8FAFC",
