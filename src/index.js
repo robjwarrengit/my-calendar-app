@@ -62,7 +62,7 @@ async function handleEventsRequest(request, env, ctx) {
     try {
       const fetchUrl = rawUrl.trim().replace(/^webcal:\/\//i, "https://");
       const res = await fetch(fetchUrl, {
-        headers: { "User-Agent": "MyFamilyCalenderWorker/1.0" }
+        headers: { "User-Agent": "MyFamilycalendarWorker/1.0" }
       });
 
       if (!res.ok) {
