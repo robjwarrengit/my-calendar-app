@@ -1,11 +1,778 @@
-async function loadLiveCalendarEvents(forceRefresh = false) {
-  const params = new URLSearchParams({
-    stripNotes: state.privacy.stripNotes ? "1" : "0",
-    hideLocation: state.privacy.hideLocation ? "1" : "0",
-    ...(forceRefresh ? { refresh: "1" } : {})
-  });
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Family Calendar" />
+  <title>Family Calendar</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: "#FAF8F5",
+            surface: "#FFFFFF",
+            ink: "#1E242B",
+            muted: "#64748B",
+            nat: "#E11D48",
+            rob: "#0284C7",
+            ella: "#059669",
+            noah: "#7C3AED"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      background-color: #FAF8F5;
+      color: #1E242B;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <div id="app" class="flex-1 flex flex-col max-w-[1600px] w-full mx-auto px-4 py-3 gap-3">
+    <!-- Top Header & Member Filter Bar -->
+    <header class="flex flex-wrap items-center justify-between gap-3 bg-white/90 backdrop-blur border border-slate-200/80 rounded-2xl px-4 py-2.5 shadow-sm">
+      <div class="flex items-center gap-3">
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-slate-900 leading-tight">Family Calendar</h1>
+          <p id="syncMeta" class="text-xs text-slate-500">Connecting to schedule…</p>
+        </div>
 
-  const res = await fetch(`/api/calendar/events?${params.toString()}`);
-  if (!res.ok) throw new Error("Failed to load family calendar feed");
-  return await res.json();
-}
+        <!-- Main Section Switcher -->
+        <nav class="flex items-center bg-slate-100 p-1 rounded-xl ml-2" aria-label="Main sections">
+          <button id="tabSchedule" onclick="setActiveTab('schedule')" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition">Schedule</button>
+          <button id="tabRoutine" onclick="setActiveTab('routine')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Morning Routine</button>
+          <button id="tabTodo" onclick="setActiveTab('todo')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">To-Do</button>
+          <button id="tabPlans" onclick="setActiveTab('plans')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Plans</button>
+          <button id="tabSettings" onclick="setActiveTab('settings')" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Settings &amp; Sync</button>
+        </nav>
+      </div>
+
+      <!-- Member Filter Pills -->
+      <div id="memberFilterBar" class="flex flex-wrap items-center gap-1.5"></div>
+
+      <!-- Navigation & View Mode Controls -->
+      <div class="flex items-center gap-2">
+        <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
+          <button onclick="shiftDays(-stepSize)" title="Previous" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-700 font-bold transition">&lsaquo;</button>
+          <button onclick="goToday()" class="px-2.5 h-8 flex items-center justify-center rounded-lg hover:bg-white text-xs font-semibold text-slate-700 transition">Today</button>
+          <button onclick="shiftDays(stepSize)" title="Next" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white text-slate-700 font-bold transition">&rsaquo;</button>
+        </div>
+
+        <button id="stepToggleBtn" onclick="toggleStepSize()" class="h-8 px-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition" title="Toggle step size between 1 day and 5 days">
+          Step: 5d
+        </button>
+
+        <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
+          <button id="modeListBtn" onclick="setViewMode('list')" class="px-2.5 h-7 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition">List</button>
+          <button id="modeGridBtn" onclick="setViewMode('grid')" class="px-2.5 h-7 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">Overlap Grid</button>
+        </div>
+
+        <button onclick="refreshEvents(true)" class="h-8 px-3 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 active:scale-[0.99] transition">
+          Sync
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="mainContent" class="flex-1 flex flex-col gap-3"></main>
+  </div>
+
+  <script>
+    const MEMBERS = [
+      { id: "nat", name: "Nat", badge: "N", pillBg: "bg-rose-50 border-rose-200 text-rose-800", dot: "bg-rose-500", cardBg: "bg-rose-50/90 border-rose-200 text-rose-950" },
+      { id: "rob", name: "Rob", badge: "R", pillBg: "bg-sky-50 border-sky-200 text-sky-800", dot: "bg-sky-500", cardBg: "bg-sky-50/90 border-sky-200 text-sky-950" },
+      { id: "ella", name: "Ella", badge: "E", pillBg: "bg-emerald-50 border-emerald-200 text-emerald-800", dot: "bg-emerald-500", cardBg: "bg-emerald-50/90 border-emerald-200 text-emerald-950" },
+      { id: "noah", name: "Noah", badge: "H", pillBg: "bg-violet-50 border-violet-200 text-violet-800", dot: "bg-violet-500", cardBg: "bg-violet-50/90 border-violet-200 text-violet-950" }
+    ];
+
+    const DEFAULT_ROUTINE = [
+      { id: "r1", label: "Get dressed & uniform on", ella: false, noah: false },
+      { id: "r2", label: "Eat breakfast & clear bowl", ella: false, noah: false },
+      { id: "r3", label: "Brush teeth & hair", ella: false, noah: false },
+      { id: "r4", label: "Pack lunchbox, drink bottle & bag", ella: false, noah: false },
+      { id: "r5", label: "Shoes on by the door", ella: false, noah: false }
+    ];
+
+    const FALLBACK_EVENTS = createSampleEvents();
+
+    const STORAGE_KEY = "family_calendar_ipad_state_v1";
+
+    let state = loadState();
+    let stepSize = 5;
+    let activeTab = "schedule";
+    let viewMode = "list";
+    let liveEvents = [];
+    let feedStatuses = [];
+    let lastSyncedAt = null;
+    let usingFallback = true;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            startOffsetDays: typeof parsed.startOffsetDays === "number" ? parsed.startOffsetDays : 0,
+            selectedMembers: Array.isArray(parsed.selectedMembers) && parsed.selectedMembers.length
+              ? parsed.selectedMembers
+              : MEMBERS.map((m) => m.id),
+            officeFlags: parsed.officeFlags || {},
+            routine: Array.isArray(parsed.routine) && parsed.routine.length ? parsed.routine : structuredClone(DEFAULT_ROUTINE),
+            todos: Array.isArray(parsed.todos) ? parsed.todos : [
+              { id: "t1", text: "Check school excursion permission slip", done: false },
+              { id: "t2", text: "Restock snacks & fruit for lunchboxes", done: true }
+            ],
+            plans: Array.isArray(parsed.plans) ? parsed.plans : [
+              { id: "p1", title: "Weekend beach / park outing", notes: "Pack sunscreen, towels & extra snacks" }
+            ],
+            privacy: {
+              stripNotes: parsed.privacy?.stripNotes !== false,
+              hideLocation: Boolean(parsed.privacy?.hideLocation)
+            }
+          };
+        }
+      } catch (_) {}
+
+      return {
+        startOffsetDays: 0,
+        selectedMembers: MEMBERS.map((m) => m.id),
+        officeFlags: {},
+        routine: structuredClone(DEFAULT_ROUTINE),
+        todos: [
+          { id: "t1", text: "Check school excursion permission slip", done: false },
+          { id: "t2", text: "Restock snacks & fruit for lunchboxes", done: true }
+        ],
+        plans: [
+          { id: "p1", title: "Weekend beach / park outing", notes: "Pack sunscreen, towels & extra snacks" }
+        ],
+        privacy: {
+          stripNotes: true,
+          hideLocation: false
+        }
+      };
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (_) {}
+    }
+
+    function dateKey(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const d = String(dateObj.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function getDayOfficeState(key) {
+      const entry = state.officeFlags[key] || {};
+      return {
+        nat: entry.nat === "office" ? "office" : "wfh",
+        rob: entry.rob === "office" ? "office" : "wfh"
+      };
+    }
+
+    function toggleOfficeFlag(key, person) {
+      const current = getDayOfficeState(key);
+      const nextVal = current[person] === "office" ? "wfh" : "office";
+      state.officeFlags[key] = {
+        ...current,
+        [person]: nextVal
+      };
+      saveState();
+      render();
+    }
+
+    function createSampleEvents() {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const at = (dayOffset, startHour, startMin, endHour, endMin, memberId, title, location = "") => {
+        const s = new Date(today);
+        s.setDate(s.getDate() + dayOffset);
+        s.setHours(startHour, startMin, 0, 0);
+
+        const e = new Date(today);
+        e.setDate(e.getDate() + dayOffset);
+        e.setHours(endHour, endMin, 0, 0);
+
+        return {
+          id: `${dayOffset}-${startHour}-${memberId}-${title}`,
+          memberId,
+          title,
+          start: s.toISOString(),
+          end: e.toISOString(),
+          allDay: false,
+          location,
+          notes: ""
+        };
+      };
+
+      return [
+        at(0, 8, 30, 9, 30, "nat", "School Drop-Off", "Primary Gate"),
+        at(0, 10, 0, 11, 30, "rob", "Client Strategy Sync", "City Office"),
+        at(0, 10, 45, 12, 0, "nat", "Dentist Checkup", "Health Hub"),
+        at(0, 15, 30, 16, 45, "ella", "Swimming Lesson", "Aquatic Centre"),
+        at(1, 9, 0, 10, 30, "rob", "Product Roadmap Review"),
+        at(1, 16, 0, 17, 15, "noah", "Soccer Training", "North Park"),
+        at(2, 9, 30, 11, 0, "nat", "Team Planning"),
+        at(2, 13, 0, 14, 30, "ella", "Art Club"),
+        at(3, 11, 0, 12, 0, "rob", "1:1 Catchup"),
+        at(4, 17, 30, 19, 0, "nat", "Friday Family Pizza", "Home")
+      ];
+    }
+
+    // Backend API hook for Cloudflare Worker (/api/calendar/events)
+    async function loadLiveCalendarEvents(forceRefresh = false) {
+      const params = new URLSearchParams({
+        stripNotes: state.privacy.stripNotes ? "1" : "0",
+        hideLocation: state.privacy.hideLocation ? "1" : "0",
+        ...(forceRefresh ? { refresh: "1" } : {})
+      });
+
+      const res = await fetch(`/api/calendar/events?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to load family calendar feed");
+      return await res.json();
+    }
+
+    async function refreshEvents(forceRefresh = false) {
+      updateSyncMeta("Syncing feeds…");
+      try {
+        const data = await loadLiveCalendarEvents(forceRefresh);
+        if (Array.isArray(data.events)) {
+          liveEvents = data.events;
+          feedStatuses = Array.isArray(data.feeds) ? data.feeds : [];
+          lastSyncedAt = data.syncedAt || new Date().toISOString();
+          usingFallback = false;
+          updateSyncMeta(`Synced ${new Date(lastSyncedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
+        } else {
+          throw new Error("Invalid feed response");
+        }
+      } catch (_) {
+        liveEvents = FALLBACK_EVENTS;
+        usingFallback = true;
+        updateSyncMeta("Sample mode (connect Worker secrets for live .ics)");
+      }
+      render();
+    }
+
+    function updateSyncMeta(text) {
+      const el = document.getElementById("syncMeta");
+      if (el) el.textContent = text;
+    }
+
+    function setActiveTab(tab) {
+      activeTab = tab;
+      for (const id of ["schedule", "routine", "todo", "plans", "settings"]) {
+        const btn = document.getElementById(`tab${id[0].toUpperCase() + id.slice(1)}`);
+        if (!btn) continue;
+        if (id === tab) {
+          btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition";
+        } else {
+          btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+        }
+      }
+      render();
+    }
+
+    function setViewMode(mode) {
+      viewMode = mode;
+      const listBtn = document.getElementById("modeListBtn");
+      const gridBtn = document.getElementById("modeGridBtn");
+      if (mode === "list") {
+        listBtn.className = "px-2.5 h-7 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition";
+        gridBtn.className = "px-2.5 h-7 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+      } else {
+        gridBtn.className = "px-2.5 h-7 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition";
+        listBtn.className = "px-2.5 h-7 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition";
+      }
+      render();
+    }
+
+    function toggleStepSize() {
+      stepSize = stepSize === 5 ? 1 : 5;
+      const btn = document.getElementById("stepToggleBtn");
+      if (btn) btn.textContent = `Step: ${stepSize}d`;
+    }
+
+    function shiftDays(delta) {
+      state.startOffsetDays += delta;
+      saveState();
+      render();
+    }
+
+    function goToday() {
+      state.startOffsetDays = 0;
+      saveState();
+      render();
+    }
+
+    function toggleMemberFilter(memberId) {
+      if (state.selectedMembers.includes(memberId)) {
+        if (state.selectedMembers.length === 1) return;
+        state.selectedMembers = state.selectedMembers.filter((id) => id !== memberId);
+      } else {
+        state.selectedMembers.push(memberId);
+      }
+      saveState();
+      render();
+    }
+
+    function renderMemberFilterBar() {
+      const bar = document.getElementById("memberFilterBar");
+      bar.innerHTML = MEMBERS.map((m) => {
+        const active = state.selectedMembers.includes(m.id);
+        return `
+          <button onclick="toggleMemberFilter('${m.id}')" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-semibold transition ${
+            active ? `${m.pillBg} shadow-2xs` : "bg-slate-100 border-slate-200 text-slate-400 opacity-65"
+          }">
+            <span class="w-2 h-2 rounded-full ${m.dot}"></span>
+            <span>${m.name}</span>
+          </button>
+        `;
+      }).join("");
+    }
+
+    function getVisibleDays() {
+      const base = new Date();
+      base.setHours(0, 0, 0, 0);
+      base.setDate(base.getDate() + state.startOffsetDays);
+
+      const days = [];
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(base);
+        d.setDate(base.getDate() + i);
+        days.push(d);
+      }
+      return days;
+    }
+
+    function getEventsForDay(dayDate) {
+      const dayStart = new Date(dayDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(dayDate);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      return liveEvents
+        .filter((ev) => {
+          if (!state.selectedMembers.includes(ev.memberId)) return false;
+          const s = new Date(ev.start);
+          const e = new Date(ev.end || ev.start);
+          return s <= dayEnd && e >= dayStart;
+        })
+        .sort((a, b) => new Date(a.start) - new Date(b.start));
+    }
+
+    function hasOverlap(eventItem, dayEvents) {
+      const s1 = new Date(eventItem.start).getTime();
+      const e1 = new Date(eventItem.end || eventItem.start).getTime();
+      return dayEvents.some((other) => {
+        if (other.id === eventItem.id) return false;
+        const s2 = new Date(other.start).getTime();
+        const e2 = new Date(other.end || other.start).getTime();
+        return s1 < e2 && e1 > s2;
+      });
+    }
+
+    function renderOfficeToggleRow(key) {
+      const flags = getDayOfficeState(key);
+      const natIsOffice = flags.nat === "office";
+      const robIsOffice = flags.rob === "office";
+
+      const natClass = natIsOffice
+        ? "bg-amber-300 border-amber-500 text-amber-950 font-bold shadow-2xs"
+        : "bg-slate-50 border-dashed border-slate-300 text-slate-500 font-medium hover:bg-slate-100";
+
+      const robClass = robIsOffice
+        ? "bg-amber-300 border-amber-500 text-amber-950 font-bold shadow-2xs"
+        : "bg-slate-50 border-dashed border-slate-300 text-slate-500 font-medium hover:bg-slate-100";
+
+      return `
+        <div class="grid grid-cols-2 gap-1.5 mt-2">
+          <button onclick="toggleOfficeFlag('${key}', 'nat')" class="h-8 px-1.5 rounded-lg border text-[11px] leading-tight flex items-center justify-center text-center transition active:scale-[0.98] ${natClass}">
+            ${natIsOffice ? "Nat Office" : "Nat WFH"}
+          </button>
+          <button onclick="toggleOfficeFlag('${key}', 'rob')" class="h-8 px-1.5 rounded-lg border text-[11px] leading-tight flex items-center justify-center text-center transition active:scale-[0.98] ${robClass}">
+            ${robIsOffice ? "Rob Office" : "Rob WFH"}
+          </button>
+        </div>
+      `;
+    }
+
+    function formatTimeRange(ev) {
+      if (ev.allDay) return "All day";
+      const opts = { hour: "numeric", minute: "2-digit" };
+      const s = new Date(ev.start).toLocaleTimeString([], opts);
+      const e = new Date(ev.end || ev.start).toLocaleTimeString([], opts);
+      return `${s} – ${e}`;
+    }
+
+    function memberById(id) {
+      return MEMBERS.find((m) => m.id === id) || MEMBERS[0];
+    }
+
+    function renderSchedule() {
+      const days = getVisibleDays();
+      const todayKey = dateKey(new Date());
+      const main = document.getElementById("mainContent");
+
+      if (viewMode === "list") {
+        main.innerHTML = `
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-3 flex-1">
+            ${days.map((d) => {
+              const k = dateKey(d);
+              const isToday = k === todayKey;
+              const dayEvents = getEventsForDay(d);
+              return `
+                <section class="bg-white rounded-2xl border ${isToday ? "border-slate-900 ring-1 ring-slate-900/10" : "border-slate-200/80"} p-3 flex flex-col gap-2.5 shadow-2xs">
+                  <div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs font-semibold uppercase tracking-wider ${isToday ? "text-rose-600" : "text-slate-500"}">
+                        ${d.toLocaleDateString([], { weekday: "short" })}
+                      </span>
+                      ${isToday ? '<span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">Today</span>' : ""}
+                    </div>
+                    <div class="text-base font-bold text-slate-900">
+                      ${d.toLocaleDateString([], { month: "short", day: "numeric" })}
+                    </div>
+                    ${renderOfficeToggleRow(k)}
+                  </div>
+
+                  <div class="flex flex-col gap-2 flex-1">
+                    ${
+                      dayEvents.length === 0
+                        ? '<div class="flex-1 flex items-center justify-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl p-4 text-center">No events</div>'
+                        : dayEvents.map((ev) => {
+                            const mem = memberById(ev.memberId);
+                            const overlapped = hasOverlap(ev, dayEvents);
+                            return `
+                              <article class="rounded-xl border p-2.5 ${mem.cardBg} flex flex-col gap-1">
+                                <div class="flex items-center justify-between gap-1">
+                                  <span class="inline-flex items-center gap-1.5 text-[11px] font-bold">
+                                    <span class="w-2 h-2 rounded-full ${mem.dot}"></span>
+                                    ${mem.name}
+                                  </span>
+                                  ${
+                                    overlapped
+                                      ? '<span class="px-1.5 py-0.5 rounded bg-yellow-300 text-amber-950 border border-amber-500 text-[10px] font-extrabold uppercase tracking-wide">Overlap</span>'
+                                      : ""
+                                  }
+                                </div>
+                                <div class="text-xs font-bold leading-snug">${escapeHtml(ev.title)}</div>
+                                <div class="text-[11px] opacity-80">${formatTimeRange(ev)}</div>
+                                ${ev.location && !state.privacy.hideLocation ? `<div class="text-[11px] opacity-75 truncate">${escapeHtml(ev.location)}</div>` : ""}
+                              </article>
+                            `;
+                          }).join("")
+                    }
+                  </div>
+                </section>
+              `;
+            }).join("")}
+          </div>
+        `;
+      } else {
+        // Time Grid (Overlapping) View: 6 AM to 8 PM (14 hours * 56px = 784px)
+        const startHour = 6;
+        const endHour = 20;
+        const hourHeight = 56;
+        const totalHeight = (endHour - startHour) * hourHeight;
+        const hours = Array.from({ length: endHour - startHour + 1 }, (_, idx) => startHour + idx);
+
+        main.innerHTML = `
+          <div class="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-2xs overflow-x-auto">
+            <div class="min-w-[820px]">
+              <!-- Day Headers + Office/WFH Toggles -->
+              <div class="grid grid-cols-[64px_repeat(5,minmax(0,1fr))] gap-2 pb-2.5 border-b border-slate-200">
+                <div></div>
+                ${days.map((d) => {
+                  const k = dateKey(d);
+                  const isToday = k === todayKey;
+                  return `
+                    <div class="px-1">
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase ${isToday ? "text-rose-600" : "text-slate-500"}">
+                          ${d.toLocaleDateString([], { weekday: "short", day: "numeric" })}
+                        </span>
+                        ${isToday ? '<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700">Today</span>' : ""}
+                      </div>
+                      ${renderOfficeToggleRow(k)}
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+
+              <!-- Time Axis + 5 Columns -->
+              <div class="grid grid-cols-[64px_repeat(5,minmax(0,1fr))] gap-2 pt-2">
+                <div class="relative" style="height:${totalHeight}px">
+                  ${hours.map((h) => {
+                    const top = (h - startHour) * hourHeight;
+                    const label = new Date(2026, 0, 1, h, 0).toLocaleTimeString([], { hour: "numeric" });
+                    return `<div style="top:${top - 7}px" class="absolute right-2 text-[11px] font-medium text-slate-400">${label}</div>`;
+                  }).join("")}
+                </div>
+
+                ${days.map((d) => {
+                  const dayEvents = getEventsForDay(d).filter((ev) => !ev.allDay);
+                  return `
+                    <div class="relative rounded-xl bg-slate-50/70 border border-slate-200/70" style="height:${totalHeight}px">
+                      ${hours.map((h) => {
+                        const top = (h - startHour) * hourHeight;
+                        return `<div style="top:${top}px" class="absolute inset-x-0 border-t border-slate-200/70"></div>`;
+                      }).join("")}
+
+                      ${dayEvents.map((ev) => {
+                        const mem = memberById(ev.memberId);
+                        const overlapped = hasOverlap(ev, dayEvents);
+                        const s = new Date(ev.start);
+                        const e = new Date(ev.end || ev.start);
+                        const startDecimal = Math.max(startHour, s.getHours() + s.getMinutes() / 60);
+                        const endDecimal = Math.min(endHour, Math.max(startDecimal + 0.5, e.getHours() + e.getMinutes() / 60));
+                        const topPx = (startDecimal - startHour) * hourHeight;
+                        const heightPx = Math.max(28, (endDecimal - startDecimal) * hourHeight);
+
+                        return `
+                          <div style="top:${topPx}px;height:${heightPx}px" class="absolute ${overlapped ? "left-1.5 right-6" : "left-1 right-1"} rounded-lg border px-2 py-1 overflow-hidden ${mem.cardBg} shadow-2xs">
+                            <div class="flex items-center justify-between gap-1">
+                              <span class="text-[11px] font-bold truncate">${escapeHtml(ev.title)}</span>
+                              ${
+                                overlapped
+                                  ? '<span class="shrink-0 px-1 py-0.2 rounded bg-yellow-300 text-amber-950 border border-amber-500 text-[9px] font-extrabold uppercase">Overlap</span>'
+                                  : ""
+                              }
+                            </div>
+                            <div class="text-[10px] opacity-80 truncate">${mem.name} · ${formatTimeRange(ev)}</div>
+                          </div>
+                        `;
+                      }).join("")}
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function toggleRoutineItem(itemId, childKey) {
+      const item = state.routine.find((r) => r.id === itemId);
+      if (!item) return;
+      item[childKey] = !item[childKey];
+      saveState();
+      render();
+    }
+
+    function resetRoutine() {
+      state.routine = state.routine.map((r) => ({ ...r, ella: false, noah: false }));
+      saveState();
+      render();
+    }
+
+    function renderRoutine() {
+      const main = document.getElementById("mainContent");
+      main.innerHTML = `
+        <section class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Kids’ Morning Routine</h2>
+              <p class="text-xs text-slate-500">Tap checkboxes for Ella and Noah</p>
+            </div>
+            <button onclick="resetRoutine()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700 transition">
+              Reset Morning
+            </button>
+          </div>
+
+          <div class="divide-y divide-slate-100">
+            ${state.routine.map((item) => `
+              <div class="py-3 flex items-center justify-between gap-4">
+                <span class="text-sm font-medium text-slate-800">${escapeHtml(item.label)}</span>
+                <div class="flex items-center gap-3">
+                  <button onclick="toggleRoutineItem('${item.id}', 'ella')" class="px-3 py-1.5 rounded-xl border text-xs font-bold transition ${
+                    item.ella ? "bg-emerald-500 border-emerald-600 text-white" : "bg-emerald-50/70 border-emerald-200 text-emerald-800"
+                  }">
+                    ${item.ella ? "✓ Ella" : "Ella"}
+                  </button>
+                  <button onclick="toggleRoutineItem('${item.id}', 'noah')" class="px-3 py-1.5 rounded-xl border text-xs font-bold transition ${
+                    item.noah ? "bg-violet-500 border-violet-600 text-white" : "bg-violet-50/70 border-violet-200 text-violet-800"
+                  }">
+                    ${item.noah ? "✓ Noah" : "Noah"}
+                  </button>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderTodo() {
+      const main = document.getElementById("mainContent");
+      main.innerHTML = `
+        <section class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs flex flex-col gap-4">
+          <h2 class="text-base font-bold text-slate-900">Household To-Do</h2>
+          <form onsubmit="addTodo(event)" class="flex gap-2">
+            <input id="newTodoInput" type="text" placeholder="Add a family task…" class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:border-slate-900" />
+            <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold">Add</button>
+          </form>
+          <ul class="divide-y divide-slate-100">
+            ${state.todos.map((t) => `
+              <li class="py-2.5 flex items-center justify-between gap-3">
+                <button onclick="toggleTodo('${t.id}')" class="flex items-center gap-2.5 text-left flex-1">
+                  <span class="w-5 h-5 rounded-md border flex items-center justify-center text-xs font-bold ${t.done ? "bg-slate-900 border-slate-900 text-white" : "border-slate-300"}">${t.done ? "✓" : ""}</span>
+                  <span class="text-sm ${t.done ? "line-through text-slate-400" : "text-slate-800"}">${escapeHtml(t.text)}</span>
+                </button>
+                <button onclick="deleteTodo('${t.id}')" class="text-xs text-slate-400 hover:text-rose-600 px-2 py-1">Remove</button>
+              </li>
+            `).join("")}
+          </ul>
+        </section>
+      `;
+    }
+
+    function addTodo(e) {
+      e.preventDefault();
+      const input = document.getElementById("newTodoInput");
+      const val = (input?.value || "").trim();
+      if (!val) return;
+      state.todos.unshift({ id: String(Date.now()), text: val, done: false });
+      saveState();
+      render();
+    }
+
+    function toggleTodo(id) {
+      const item = state.todos.find((t) => t.id === id);
+      if (!item) return;
+      item.done = !item.done;
+      saveState();
+      render();
+    }
+
+    function deleteTodo(id) {
+      state.todos = state.todos.filter((t) => t.id !== id);
+      saveState();
+      render();
+    }
+
+    function renderPlans() {
+      const main = document.getElementById("mainContent");
+      main.innerHTML = `
+        <section class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs flex flex-col gap-4">
+          <h2 class="text-base font-bold text-slate-900">Family Plans &amp; Ideas</h2>
+          <form onsubmit="addPlan(event)" class="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <input id="planTitleInput" type="text" placeholder="Plan title…" class="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:border-slate-900" />
+            <input id="planNotesInput" type="text" placeholder="Notes or details…" class="rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:border-slate-900" />
+            <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold">Add Plan</button>
+          </form>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            ${state.plans.map((p) => `
+              <div class="rounded-xl border border-slate-200 p-3.5 flex items-start justify-between gap-3">
+                <div>
+                  <div class="text-sm font-bold text-slate-900">${escapeHtml(p.title)}</div>
+                  <div class="text-xs text-slate-500 mt-0.5">${escapeHtml(p.notes || "")}</div>
+                </div>
+                <button onclick="deletePlan('${p.id}')" class="text-xs text-slate-400 hover:text-rose-600">Remove</button>
+              </div>
+            `).join("")}
+          </div>
+        </section>
+      `;
+    }
+
+    function addPlan(e) {
+      e.preventDefault();
+      const titleEl = document.getElementById("planTitleInput");
+      const notesEl = document.getElementById("planNotesInput");
+      const title = (titleEl?.value || "").trim();
+      const notes = (notesEl?.value || "").trim();
+      if (!title) return;
+      state.plans.unshift({ id: String(Date.now()), title, notes });
+      saveState();
+      render();
+    }
+
+    function deletePlan(id) {
+      state.plans = state.plans.filter((p) => p.id !== id);
+      saveState();
+      render();
+    }
+
+    function renderSettings() {
+      const main = document.getElementById("mainContent");
+      main.innerHTML = `
+        <section class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs flex flex-col gap-5">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Settings &amp; Sync</h2>
+            <p class="text-xs text-slate-500">Calendar feed URLs are stored securely in Cloudflare Worker Secrets (never in browser storage).</p>
+          </div>
+
+          <div class="flex flex-col gap-3">
+            <label class="flex items-center justify-between gap-3 py-2 border-b border-slate-100">
+              <span class="text-sm font-medium text-slate-800">Strip event descriptions/notes on fetch</span>
+              <input type="checkbox" ${state.privacy.stripNotes ? "checked" : ""} onchange="updatePrivacy('stripNotes', this.checked)" class="w-4 h-4" />
+            </label>
+            <label class="flex items-center justify-between gap-3 py-2 border-b border-slate-100">
+              <span class="text-sm font-medium text-slate-800">Hide event locations</span>
+              <input type="checkbox" ${state.privacy.hideLocation ? "checked" : ""} onchange="updatePrivacy('hideLocation', this.checked)" class="w-4 h-4" />
+            </label>
+          </div>
+
+          <div>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Backend Feed Status</h3>
+            <div class="text-xs text-slate-600 bg-slate-50 rounded-xl p-3 border border-slate-200/80">
+              ${
+                usingFallback
+                  ? "Currently displaying sample events. Deploy with <code>src/index.js</code> and configure <code>ICS_URL_NAT</code>, <code>ICS_URL_ROB</code>, <code>ICS_URL_ELLA</code>, and <code>ICS_URL_NOAH</code> in Cloudflare Secrets for live feeds."
+                  : JSON.stringify(feedStatuses)
+              }
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function updatePrivacy(key, val) {
+      state.privacy[key] = Boolean(val);
+      saveState();
+      refreshEvents(true);
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function render() {
+      renderMemberFilterBar();
+      if (activeTab === "schedule") renderSchedule();
+      else if (activeTab === "routine") renderRoutine();
+      else if (activeTab === "todo") renderTodo();
+      else if (activeTab === "plans") renderPlans();
+      else if (activeTab === "settings") renderSettings();
+    }
+
+    render();
+    refreshEvents(false);
+  </script>
+</body>
+</html>
