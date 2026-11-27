@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="my-family-calender" />
-  <title>The Warren Family · my-family-calender</title>
+  <meta name="apple-mobile-web-app-title" content="my-family-calendar" />
+  <title>The Warren Family · my-family-calendar</title>
   <link rel="manifest" href="/manifest.webmanifest" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -32,7 +32,7 @@
         </div>
         <div class="border-l border-slate-200 pl-4">
           <h1 class="text-lg font-extrabold tracking-tight text-slate-900 leading-tight">The Warren Family</h1>
-          <p id="syncMeta" class="text-xs text-slate-500">my-family-calender · Connecting…</p>
+          <p id="syncMeta" class="text-xs text-slate-500">my-family-calendar · Connecting…</p>
         </div>
       </div>
 
@@ -167,7 +167,7 @@
       { id: "r5", icon: "👟", label: "Shoes on", hamish: false, seb: false }
     ];
 
-    const STORAGE_KEY = "my_family_calender_state_v3";
+    const STORAGE_KEY = "my_family_calendar_state_v3";
     const FALLBACK_EVENTS = buildSampleEvents();
 
     let state = loadState();
@@ -295,7 +295,7 @@
     }
 
     async function refreshEvents(forceRefresh = false) {
-      setSyncText("my-family-calender · Syncing…");
+      setSyncText("my-family-calendar · Syncing…");
       try {
         const data = await loadLiveCalendarEvents(forceRefresh);
         if (Array.isArray(data.events)) {
@@ -303,14 +303,14 @@
           feedStatuses = Array.isArray(data.feeds) ? data.feeds : [];
           usingFallback = false;
           const t = new Date(data.syncedAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-          setSyncText(`my-family-calender · Synced ${t}`);
+          setSyncText(`my-family-calendar · Synced ${t}`);
         } else {
           throw new Error("Bad response");
         }
       } catch (_) {
         liveEvents = FALLBACK_EVENTS;
         usingFallback = true;
-        setSyncText("my-family-calender · Sample events (connect Secrets for live .ics)");
+        setSyncText("my-family-calendar · Sample events (connect Secrets for live .ics)");
       }
       render();
     }
