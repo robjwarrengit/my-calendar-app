@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "my-family-calender",
+  "name": "my-family-calendar",
   "main": "src/index.js",
   "compatibility_date": "2026-11-27",
   "assets": {
