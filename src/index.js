@@ -1,10 +1,11 @@
 import ICAL from "ical.js";
 
 const MEMBERS = [
+  { id: "family", name: "Family", secretKey: "ICS_URL_FAMILY" },
   { id: "nat", name: "Nat", secretKey: "ICS_URL_NAT" },
   { id: "rob", name: "Rob", secretKey: "ICS_URL_ROB" },
-  { id: "ella", name: "Ella", secretKey: "ICS_URL_ELLA" },
-  { id: "noah", name: "Noah", secretKey: "ICS_URL_NOAH" }
+  { id: "hamish", name: "Hamish", secretKey: "ICS_URL_HAMISH" },
+  { id: "seb", name: "Seb", secretKey: "ICS_URL_SEB" }
 ];
 
 export default {
@@ -15,13 +16,11 @@ export default {
       return handleEventsRequest(request, env, ctx);
     }
 
-    // Fallback to static assets in /public
     return env.ASSETS.fetch(request);
   }
 };
 
 async function handleEventsRequest(request, env, ctx) {
-  // Optional extra layer if you set DEVICE_TOKEN in Cloudflare Secrets
   if (env.DEVICE_TOKEN) {
     const authHeader = request.headers.get("Authorization") || "";
     const tokenParam = new URL(request.url).searchParams.get("token");
@@ -35,7 +34,6 @@ async function handleEventsRequest(request, env, ctx) {
   const stripNotes = reqUrl.searchParams.get("stripNotes") !== "0";
   const hideLocation = reqUrl.searchParams.get("hideLocation") === "1";
 
-  // Edge cache check (10-minute TTL unless manual refresh)
   const cache = caches.default;
   const cacheKey = new Request(
     `${reqUrl.origin}/api/calendar/events?stripNotes=${stripNotes}&hideLocation=${hideLocation}`,
@@ -47,15 +45,9 @@ async function handleEventsRequest(request, env, ctx) {
     if (cached) return cached;
   }
 
-  // Query window: 7 days ago -> 21 days ahead
   const now = new Date();
-  const windowStart = new Date(now);
-  windowStart.setDate(windowStart.getDate() - 7);
-  windowStart.setHours(0, 0, 0, 0);
-
-  const windowEnd = new Date(now);
-  windowEnd.setDate(windowEnd.getDate() + 21);
-  windowEnd.setHours(23, 59, 59, 999);
+  const windowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14, 0, 0, 0, 0);
+  const windowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 35, 23, 59, 59, 999);
 
   const allEvents = [];
   const feedStatus = [];
@@ -70,7 +62,7 @@ async function handleEventsRequest(request, env, ctx) {
     try {
       const fetchUrl = rawUrl.trim().replace(/^webcal:\/\//i, "https://");
       const res = await fetch(fetchUrl, {
-        headers: { "User-Agent": "FamilyCalendarWorker/1.0" }
+        headers: { "User-Agent": "MyFamilyCalenderWorker/1.0" }
       });
 
       if (!res.ok) {
@@ -100,7 +92,6 @@ async function handleEventsRequest(request, env, ctx) {
     }
   }
 
-  // Sort chronologically
   allEvents.sort((a, b) => a.start.localeCompare(b.start));
 
   const payload = {
@@ -117,13 +108,24 @@ async function handleEventsRequest(request, env, ctx) {
   return response;
 }
 
+function icalTimeToLocalDate(icalTime, isEndExclusive = false) {
+  if (!icalTime) return null;
+  if (icalTime.isDate) {
+    const d = new Date(icalTime.year, icalTime.month - 1, icalTime.day, 0, 0, 0, 0);
+    if (isEndExclusive) {
+      d.setMilliseconds(d.getMilliseconds() - 1);
+    }
+    return d;
+  }
+  return icalTime.toJSDate();
+}
+
 function parseIcsEvents(icsText, memberId, windowStart, windowEnd, opts) {
   const jcalData = ICAL.parse(icsText);
   const comp = new ICAL.Component(jcalData);
   const vevents = comp.getAllSubcomponents("vevent");
   const results = [];
 
-  const rangeStart = ICAL.Time.fromJSDate(windowStart, false);
   const rangeEnd = ICAL.Time.fromJSDate(windowEnd, false);
 
   for (const vevent of vevents) {
@@ -137,24 +139,26 @@ function parseIcsEvents(icsText, memberId, windowStart, windowEnd, opts) {
       let next;
       let guard = 0;
 
-      while ((next = expand.next()) && guard < 200) {
+      while ((next = expand.next()) && guard < 300) {
         guard++;
         if (next.compare(rangeEnd) > 0) break;
 
         const occ = event.getOccurrenceDetails(next);
-        const startJs = occ.startDate.toJSDate();
-        const endJs = occ.endDate.toJSDate();
+        const isAllDay = Boolean(occ.startDate && occ.startDate.isDate);
+        const startJs = icalTimeToLocalDate(occ.startDate, false);
+        const endJs = occ.endDate ? icalTimeToLocalDate(occ.endDate, isAllDay) : startJs;
 
-        if (endJs >= windowStart && startJs <= windowEnd) {
-          results.push(formatEvent(memberId, summary, startJs, endJs, occ.startDate.isDate, location, description));
+        if (startJs && endJs && endJs >= windowStart && startJs <= windowEnd) {
+          results.push(formatEvent(memberId, summary, startJs, endJs, isAllDay, location, description));
         }
       }
     } else {
-      const startJs = event.startDate.toJSDate();
-      const endJs = event.endDate ? event.endDate.toJSDate() : startJs;
+      const isAllDay = Boolean(event.startDate && event.startDate.isDate);
+      const startJs = icalTimeToLocalDate(event.startDate, false);
+      const endJs = event.endDate ? icalTimeToLocalDate(event.endDate, isAllDay) : startJs;
 
-      if (endJs >= windowStart && startJs <= windowEnd) {
-        results.push(formatEvent(memberId, summary, startJs, endJs, event.startDate.isDate, location, description));
+      if (startJs && endJs && endJs >= windowStart && startJs <= windowEnd) {
+        results.push(formatEvent(memberId, summary, startJs, endJs, isAllDay, location, description));
       }
     }
   }
