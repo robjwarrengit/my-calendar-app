@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="my-family-calender" />
-  <title>my-family-calender</title>
+  <title>The Warren Family · my-family-calender</title>
   <link rel="manifest" href="/manifest.webmanifest" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -15,11 +15,15 @@
       color: #0F172A;
       -webkit-tap-highlight-color: transparent;
     }
+    .smooth-scroll {
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
   <!-- Sticky Top Dashboard Header -->
-  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3">
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-2.5">
     <div class="max-w-[1680px] mx-auto flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-5">
         <div>
@@ -27,7 +31,7 @@
           <div id="liveDateLine" class="text-xs font-medium text-slate-500 mt-1">Friday 27 Nov</div>
         </div>
         <div class="border-l border-slate-200 pl-4">
-          <h1 class="text-lg font-extrabold tracking-tight text-slate-900 leading-tight">The Bennett Family</h1>
+          <h1 class="text-lg font-extrabold tracking-tight text-slate-900 leading-tight">The Warren Family</h1>
           <p id="syncMeta" class="text-xs text-slate-500">my-family-calender · Connecting…</p>
         </div>
       </div>
@@ -35,42 +39,69 @@
       <!-- Member Filter Pills with Event Counts -->
       <div id="memberFilterBar" class="flex flex-wrap items-center gap-2"></div>
 
-      <!-- Weather & Sync Pill -->
-      <div class="flex items-center gap-2.5">
-        <div class="flex items-center gap-2 bg-amber-50/80 border border-amber-200/80 rounded-2xl px-3.5 py-2">
-          <span class="text-lg leading-none">☀️</span>
-          <div>
-            <div class="text-xs font-extrabold text-slate-900 leading-tight">22°C</div>
-            <div class="text-[11px] text-slate-500 leading-tight">Sunny &amp; Breezy</div>
-          </div>
+      <!-- Weather Pill -->
+      <div class="flex items-center gap-2 bg-amber-50/80 border border-amber-200/80 rounded-2xl px-3.5 py-2">
+        <span class="text-lg leading-none">☀️</span>
+        <div>
+          <div class="text-xs font-extrabold text-slate-900 leading-tight">22°C</div>
+          <div class="text-[11px] text-slate-500 leading-tight">Sunny &amp; Breezy</div>
         </div>
-        <button onclick="refreshEvents(true)" class="h-10 px-3.5 rounded-2xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition">
-          Sync
-        </button>
       </div>
     </div>
   </header>
 
   <!-- Body with Left Rail + Main Workspace -->
-  <div class="flex-1 flex max-w-[1680px] w-full mx-auto">
+  <div class="flex-1 flex max-w-[1680px] w-full mx-auto min-h-0">
     <!-- Left Vertical Navigation Rail -->
-    <aside class="w-24 sm:w-28 shrink-0 border-r border-slate-200/80 bg-white/70 p-2.5 flex flex-col gap-2">
-      <button id="navSchedule" onclick="setActiveSection('schedule')" class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl bg-sky-50 text-sky-700 border border-sky-200/80 transition">
-        <span class="text-lg">📅</span>
-        <span class="text-xs font-bold">Schedule</span>
-      </button>
-      <button id="navTodo" onclick="setActiveSection('todo')" class="relative flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl text-slate-600 hover:bg-slate-100 transition">
-        <span id="todoBadge" class="absolute top-2 right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">0</span>
-        <span class="text-lg">✅</span>
-        <span class="text-xs font-semibold">To-Do</span>
-      </button>
-      <button id="navPlans" onclick="setActiveSection('plans')" class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl text-slate-600 hover:bg-slate-100 transition">
-        <span class="text-lg">🗺️</span>
-        <span class="text-xs font-semibold">Plans</span>
-      </button>
-      <button id="navSettings" onclick="setActiveSection('settings')" class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl text-slate-600 hover:bg-slate-100 transition">
-        <span class="text-lg">⚙️</span>
-        <span class="text-xs font-semibold text-center leading-tight">Settings &amp; Sync</span>
+    <aside class="w-24 sm:w-28 shrink-0 border-r border-slate-200/80 bg-white/85 p-2.5 flex flex-col justify-between">
+      <div class="flex flex-col gap-1.5">
+        <button id="navSchedule" onclick="setActiveSection('schedule')" class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl bg-sky-50 text-sky-700 border border-sky-200/80 transition">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span class="text-xs font-bold">Schedule</span>
+        </button>
+
+        <button id="navTodo" onclick="setActiveSection('todo')" class="relative flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl text-slate-600 hover:bg-slate-100 transition">
+          <span id="todoBadge" class="absolute top-2 right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center">0</span>
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 11 12 14 22 4"></polyline>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+          <span class="text-xs font-semibold">To-Do</span>
+        </button>
+
+        <button id="navPlans" onclick="setActiveSection('plans')" class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl text-slate-600 hover:bg-slate-100 transition">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+            <line x1="6" y1="1" x2="6" y2="4"></line>
+            <line x1="10" y1="1" x2="10" y2="4"></line>
+            <line x1="14" y1="1" x2="14" y2="4"></line>
+          </svg>
+          <span class="text-xs font-semibold">Plans</span>
+        </button>
+
+        <button id="navSettings" onclick="setActiveSection('settings')" class="flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl text-slate-600 hover:bg-slate-100 transition">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span class="text-xs font-semibold text-center leading-tight">Settings &amp; Sync</span>
+        </button>
+      </div>
+
+      <!-- Sync Button in Left Menu -->
+      <button onclick="refreshEvents(true)" class="mt-4 flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.99] transition shadow-2xs">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <polyline points="1 20 1 14 7 14"></polyline>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+        </svg>
+        <span class="text-xs font-bold">Sync</span>
       </button>
     </aside>
 
@@ -88,14 +119,14 @@
     ];
 
     const DEFAULT_ROUTINE = [
-      { id: "r1", label: "Get dressed & uniform on", hamish: false, seb: false },
-      { id: "r2", label: "Eat breakfast & clear bowl", hamish: false, seb: false },
-      { id: "r3", label: "Brush teeth & hair", hamish: false, seb: false },
-      { id: "r4", label: "Pack lunchbox, water bottle & school bag", hamish: false, seb: false },
-      { id: "r5", label: "Shoes on by the door", hamish: false, seb: false }
+      { id: "r1", icon: "🥣", label: "Eat brekkie", hamish: false, seb: false },
+      { id: "r2", icon: "🪥", label: "Clean teeth", hamish: false, seb: false },
+      { id: "r3", icon: " polo", label: "Get dressed", hamish: false, seb: false },
+      { id: "r4", icon: "🎒", label: "Pack bag", hamish: false, seb: false },
+      { id: "r5", icon: "👟", label: "Shoes on", hamish: false, seb: false }
     ];
 
-    const STORAGE_KEY = "my_family_calender_state_v2";
+    const STORAGE_KEY = "my_family_calender_state_v3";
     const FALLBACK_EVENTS = buildSampleEvents();
 
     let state = loadState();
@@ -106,13 +137,23 @@
     let feedStatuses = [];
     let usingFallback = true;
 
+    function getMondayWeekOffset() {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      // Monday = 1, Sunday = 0 -> days since Monday
+      const day = now.getDay();
+      const diffToMonday = day === 0 ? -6 : 1 - day;
+      return diffToMonday;
+    }
+
     function loadState() {
+      const defaultMondayOffset = getMondayWeekOffset();
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const p = JSON.parse(raw);
           return {
-            startOffsetDays: typeof p.startOffsetDays === "number" ? p.startOffsetDays : 0,
+            startOffsetDays: typeof p.startOffsetDays === "number" ? p.startOffsetDays : defaultMondayOffset,
             showWeekend: Boolean(p.showWeekend),
             showMorningRoutine: Boolean(p.showMorningRoutine),
             selectedMembers: Array.isArray(p.selectedMembers) && p.selectedMembers.length
@@ -137,7 +178,7 @@
       } catch (_) {}
 
       return {
-        startOffsetDays: 0,
+        startOffsetDays: defaultMondayOffset,
         showWeekend: false,
         showMorningRoutine: false,
         selectedMembers: MEMBERS.map((m) => m.id),
@@ -165,37 +206,39 @@
     }
 
     function buildSampleEvents() {
-      const base = new Date();
-      base.setHours(0, 0, 0, 0);
+      const monday = new Date();
+      monday.setHours(0, 0, 0, 0);
+      monday.setDate(monday.getDate() + getMondayWeekOffset());
 
-      const mkTimed = (offset, sh, sm, eh, em, memberId, title, location = "") => {
-        const s = new Date(base);
-        s.setDate(s.getDate() + offset);
+      const mkTimed = (dayIdx, sh, sm, eh, em, memberId, title) => {
+        const s = new Date(monday);
+        s.setDate(monday.getDate() + dayIdx);
         s.setHours(sh, sm, 0, 0);
-        const e = new Date(base);
-        e.setDate(e.getDate() + offset);
+        const e = new Date(monday);
+        e.setDate(monday.getDate() + dayIdx);
         e.setHours(eh, em, 0, 0);
-        return { id: `${offset}-${sh}-${memberId}-${title}`, memberId, title, start: s.toISOString(), end: e.toISOString(), allDay: false, location, notes: "" };
+        return { id: `t-${dayIdx}-${sh}-${memberId}-${title}`, memberId, title, start: s.toISOString(), end: e.toISOString(), allDay: false, location: "", notes: "" };
       };
 
-      const mkAllDay = (offset, memberId, title) => {
-        const s = new Date(base);
-        s.setDate(s.getDate() + offset);
+      const mkAllDay = (dayIdx, memberId, title) => {
+        const s = new Date(monday);
+        s.setDate(monday.getDate() + dayIdx);
         s.setHours(0, 0, 0, 0);
-        const e = new Date(base);
-        e.setDate(e.getDate() + offset);
+        const e = new Date(monday);
+        e.setDate(monday.getDate() + dayIdx);
         e.setHours(23, 59, 59, 999);
-        return { id: `allday-${offset}-${memberId}-${title}`, memberId, title, start: s.toISOString(), end: e.toISOString(), allDay: true, location: "", notes: "" };
+        return { id: `a-${dayIdx}-${memberId}-${title}`, memberId, title, start: s.toISOString(), end: e.toISOString(), allDay: true, location: "", notes: "" };
       };
 
       return [
         mkAllDay(0, "family", "Library Book Due"),
-        mkAllDay(1, "hamish", "School Sports Carnival"),
+        mkAllDay(2, "hamish", "School Sports Carnival"),
         mkTimed(0, 8, 30, 9, 15, "nat", "School drop-off"),
         mkTimed(0, 9, 0, 11, 30, "rob", "Product roadmap sync"),
-        mkTimed(0, 15, 30, 16, 30, "hamish", "Swimming lesson"),
-        mkTimed(0, 16, 0, 17, 0, "seb", "Lego & reading time"),
-        mkTimed(1, 10, 0, 11, 0, "family", "Family grocery run")
+        mkTimed(1, 9, 30, 10, 30, "rob", "Client design review"),
+        mkTimed(2, 15, 30, 16, 30, "hamish", "Swimming lesson"),
+        mkTimed(3, 16, 0, 17, 0, "seb", "Lego & reading time"),
+        mkTimed(4, 10, 0, 11, 30, "family", "Friday catch-up")
       ];
     }
 
@@ -313,17 +356,42 @@
       render();
     }
 
+    function renderOfficeTogglePair(key) {
+      const flags = getOffice(key);
+      const natOffice = flags.nat === "office";
+      const robOffice = flags.rob === "office";
+
+      return `
+        <div class="grid grid-cols-2 gap-1.5 mt-2">
+          <button onclick="toggleOffice('${key}', 'nat')" title="Switch Nat between Office and WFH" class="h-8 px-2 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap transition ${
+            natOffice
+              ? "bg-amber-300 border-amber-400 text-amber-950 shadow-2xs"
+              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+          }">
+            <span>${natOffice ? "🏢" : "🏠"}</span>
+            <span>${natOffice ? "Nat Office" : "Nat WFH"}</span>
+          </button>
+
+          <button onclick="toggleOffice('${key}', 'rob')" title="Switch Rob between Office and WFH" class="h-8 px-2 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap transition ${
+            robOffice
+              ? "bg-amber-300 border-amber-400 text-amber-950 shadow-2xs"
+              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+          }">
+            <span>${robOffice ? "🏢" : "🏠"}</span>
+            <span>${robOffice ? "Rob Office" : "Rob WFH"}</span>
+          </button>
+        </div>
+      `;
+    }
+
     function shiftWindow(direction) {
-      // direction: -1 or +1
-      // In 7d mode, step by 7 days week-by-week; in 1d mode, step by 1 day
-      const delta = direction * stepDays;
-      state.startOffsetDays += delta;
+      state.startOffsetDays += direction * stepDays;
       saveState();
       render();
     }
 
-    function goToday() {
-      state.startOffsetDays = 0;
+    function goThisWeekMonday() {
+      state.startOffsetDays = getMondayWeekOffset();
       saveState();
       render();
     }
@@ -397,14 +465,13 @@
     function renderMemberBar() {
       const bar = document.getElementById("memberFilterBar");
       const allSelected = state.selectedMembers.length === MEMBERS.length;
-      const totalCount = liveEvents.length;
 
       const allBtn = `
         <button onclick="selectAllMembers()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition ${
           allSelected ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
         }">
           <span>All Family</span>
-          <span class="px-1.5 py-0.2 rounded-full text-[10px] ${allSelected ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"}">${totalCount}</span>
+          <span class="px-1.5 py-0.2 rounded-full text-[10px] ${allSelected ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"}">${liveEvents.length}</span>
         </button>
       `;
 
@@ -447,26 +514,36 @@
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-sm font-extrabold text-slate-900">Morning Routine · Hamish &amp; Seb</h2>
-              <p class="text-xs text-slate-500">Tap each step as Hamish or Seb finishes</p>
+              <p class="text-xs text-slate-500">Tap each task chip for Hamish or Seb</p>
             </div>
             <button onclick="resetRoutineChecks()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700">
               Reset
             </button>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-            ${state.routine.map((r) => `
-              <div class="flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2">
-                <span class="text-xs font-semibold text-slate-800">${esc(r.label)}</span>
-                <div class="flex items-center gap-1.5 shrink-0">
-                  <button onclick="toggleRoutineCheck('${r.id}', 'hamish')" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition ${
-                    r.hamish ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-emerald-200 text-emerald-800"
-                  }">${r.hamish ? "✓ Hamish" : "Hamish"}</button>
-                  <button onclick="toggleRoutineCheck('${r.id}', 'seb')" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition ${
-                    r.seb ? "bg-violet-600 border-violet-600 text-white" : "bg-white border-violet-200 text-violet-800"
-                  }">${r.seb ? "✓ Seb" : "Seb"}</button>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            ${state.routine.map((r) => {
+              const iconGlyph = r.icon === " polo" ? "👔" : r.icon;
+              return `
+                <div class="flex items-center justify-between gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/60 px-3.5 py-2.5">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="text-base shrink-0">${iconGlyph}</span>
+                    <span class="text-xs font-bold text-slate-800 truncate">${esc(r.label)}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <button onclick="toggleRoutineCheck('${r.id}', 'hamish')" class="px-2.5 py-1 rounded-xl border text-[11px] font-bold transition ${
+                      r.hamish
+                        ? "bg-emerald-100 border-emerald-300 text-emerald-900 line-through"
+                        : "bg-white border-emerald-200 text-emerald-800"
+                    }">${r.hamish ? "✓ Hamish" : "Hamish"}</button>
+                    <button onclick="toggleRoutineCheck('${r.id}', 'seb')" class="px-2.5 py-1 rounded-xl border text-[11px] font-bold transition ${
+                      r.seb
+                        ? "bg-violet-100 border-violet-300 text-violet-900 line-through"
+                        : "bg-white border-violet-200 text-violet-800"
+                    }">${r.seb ? "✓ Seb" : "Seb"}</button>
+                  </div>
                 </div>
-              </div>
-            `).join("")}
+              `;
+            }).join("")}
           </div>
         </section>
       `;
@@ -484,7 +561,7 @@
           <div class="flex flex-wrap items-center gap-2">
             <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
               <button onclick="shiftWindow(-1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&lsaquo;</button>
-              <button onclick="goToday()" class="px-2.5 h-8 rounded-lg hover:bg-white text-xs font-bold text-slate-800">Today</button>
+              <button onclick="goThisWeekMonday()" class="px-2.5 h-8 rounded-lg hover:bg-white text-xs font-bold text-slate-800">Mon</button>
               <button onclick="shiftWindow(1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&rsaquo;</button>
             </div>
 
@@ -524,80 +601,68 @@
 
       if (viewMode === "list") {
         calendarBody = `
-          <div class="grid gap-3" style="grid-template-columns: repeat(${colCount}, minmax(190px, 1fr))">
-            ${days.map((d) => {
-              const k = dateKey(d);
-              const isToday = k === todayKey;
-              const flags = getOffice(k);
-              const events = getEventsForDay(d);
-              return `
-                <section class="bg-white rounded-2xl border ${isToday ? "border-sky-400" : "border-slate-200"} flex flex-col shadow-2xs">
-                  <div class="sticky top-[73px] z-20 bg-white/95 backdrop-blur rounded-t-2xl p-3 border-b border-slate-100">
-                    <div class="flex items-center gap-1.5">
-                      <span class="text-sm font-extrabold text-slate-900">${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}</span>
-                      ${isToday ? '<span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 text-[10px] font-extrabold uppercase">Today</span>' : ""}
+          <div class="smooth-scroll overflow-auto max-h-[calc(100vh-195px)] rounded-2xl">
+            <div class="grid gap-3 min-h-[560px]" style="grid-template-columns: repeat(${colCount}, minmax(210px, 1fr))">
+              ${days.map((d) => {
+                const k = dateKey(d);
+                const isToday = k === todayKey;
+                const events = getEventsForDay(d);
+                return `
+                  <section class="bg-white rounded-2xl border ${isToday ? "border-sky-400" : "border-slate-200"} flex flex-col min-h-[560px] shadow-2xs">
+                    <div class="sticky top-0 z-20 bg-white/95 backdrop-blur rounded-t-2xl p-3 border-b border-slate-100">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-sm font-extrabold text-slate-900">${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}</span>
+                        ${isToday ? '<span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 text-[10px] font-extrabold uppercase">Today</span>' : ""}
+                      </div>
+                      ${renderOfficeTogglePair(k)}
                     </div>
-                    <div class="grid grid-cols-2 gap-1.5 mt-2">
-                      <button onclick="toggleOffice('${k}', 'nat')" class="h-8 px-1.5 rounded-lg border text-[11px] font-bold truncate ${
-                        flags.nat === "office" ? "bg-amber-300 border-amber-500 text-amber-950" : "bg-white border-slate-200 text-slate-600"
-                      }">🏠 ${flags.nat === "office" ? "Nat Office" : "Nat WFH"}</button>
-                      <button onclick="toggleOffice('${k}', 'rob')" class="h-8 px-1.5 rounded-lg border text-[11px] font-bold truncate ${
-                        flags.rob === "office" ? "bg-amber-300 border-amber-500 text-amber-950" : "bg-white border-slate-200 text-slate-600"
-                      }">🏠 ${flags.rob === "office" ? "Rob Office" : "Rob WFH"}</button>
-                    </div>
-                  </div>
-                  <div class="p-2.5 flex flex-col gap-2">
-                    ${events.length === 0
-                      ? '<div class="text-xs text-slate-400 text-center py-6">No events</div>'
-                      : events.map((ev) => {
-                          const m = memberObj(ev.memberId);
-                          return `
-                            <div class="rounded-xl border p-2.5 ${m.card}">
-                              <div class="flex items-center justify-between gap-1">
-                                <span class="text-xs font-extrabold leading-snug">${esc(ev.title)}</span>
-                                <span class="w-5 h-5 rounded-full text-[10px] font-extrabold flex items-center justify-center shrink-0 ${m.badgeBg}">${m.badge}</span>
+
+                    <div class="p-2.5 flex flex-col gap-2 flex-1">
+                      ${events.length === 0
+                        ? '<div class="flex-1 rounded-xl border border-dashed border-slate-200/80 flex items-center justify-center text-xs text-slate-400">No events scheduled</div>'
+                        : events.map((ev) => {
+                            const m = memberObj(ev.memberId);
+                            return `
+                              <div class="rounded-xl border p-2.5 ${m.card}">
+                                <div class="flex items-center justify-between gap-1">
+                                  <span class="text-xs font-extrabold leading-snug">${esc(ev.title)}</span>
+                                  <span class="w-5 h-5 rounded-full text-[10px] font-extrabold flex items-center justify-center shrink-0 ${m.badgeBg}">${m.badge}</span>
+                                </div>
+                                <div class="text-[11px] opacity-80 mt-0.5">${fmtRange(ev)}</div>
                               </div>
-                              <div class="text-[11px] opacity-80 mt-0.5">${fmtRange(ev)}</div>
-                            </div>
-                          `;
-                        }).join("")}
-                  </div>
-                </section>
-              `;
-            }).join("")}
+                            `;
+                          }).join("")}
+                    </div>
+                  </section>
+                `;
+              }).join("")}
+            </div>
           </div>
         `;
       } else {
-        const startHour = 6;
+        // 8 AM to 8 PM (12 hours * 58px = 696px)
+        const startHour = 8;
         const endHour = 20;
-        const hourH = 56;
+        const hourH = 58;
         const gridH = (endHour - startHour) * hourH;
         const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
 
         calendarBody = `
-          <div class="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-x-auto">
-            <div class="min-w-[780px]">
-              <!-- Frozen Day + Office/WFH Header Row -->
-              <div class="sticky top-[73px] z-20 bg-white/95 backdrop-blur border-b border-slate-200 px-3 pt-2.5 pb-2 grid gap-2" style="grid-template-columns: 60px repeat(${colCount}, minmax(0, 1fr))">
+          <div class="smooth-scroll bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-auto max-h-[calc(100vh-195px)]">
+            <div class="min-w-[820px]">
+              <!-- Sticky Day + Office/WFH Header Row inside scroll pane -->
+              <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-200 px-3 pt-2.5 pb-2 grid gap-2" style="grid-template-columns: 60px repeat(${colCount}, minmax(0, 1fr))">
                 <div class="text-[10px] font-bold uppercase text-slate-400 self-end pb-1">Time</div>
                 ${days.map((d) => {
                   const k = dateKey(d);
                   const isToday = k === todayKey;
-                  const flags = getOffice(k);
                   return `
                     <div class="px-1">
                       <div class="flex items-center gap-1.5">
                         <span class="text-sm font-extrabold text-slate-900">${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}</span>
                         ${isToday ? '<span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 text-[10px] font-extrabold uppercase">Today</span>' : ""}
                       </div>
-                      <div class="grid grid-cols-2 gap-1.5 mt-1.5">
-                        <button onclick="toggleOffice('${k}', 'nat')" class="h-8 px-1.5 rounded-lg border text-[11px] font-bold truncate ${
-                          flags.nat === "office" ? "bg-amber-300 border-amber-500 text-amber-950" : "bg-white border-slate-200 text-slate-600"
-                        }">🏠 ${flags.nat === "office" ? "Nat Office" : "Nat WFH"}</button>
-                        <button onclick="toggleOffice('${k}', 'rob')" class="h-8 px-1.5 rounded-lg border text-[11px] font-bold truncate ${
-                          flags.rob === "office" ? "bg-amber-300 border-amber-500 text-amber-950" : "bg-white border-slate-200 text-slate-600"
-                        }">🏠 ${flags.rob === "office" ? "Rob Office" : "Rob WFH"}</button>
-                      </div>
+                      ${renderOfficeTogglePair(k)}
                     </div>
                   `;
                 }).join("")}
@@ -624,7 +689,7 @@
                 }).join("")}
               </div>
 
-              <!-- Timed Hourly Grid -->
+              <!-- Timed Hourly Grid (8 AM – 8 PM) -->
               <div class="px-3 py-2 grid gap-2" style="grid-template-columns: 60px repeat(${colCount}, minmax(0, 1fr))">
                 <div class="relative" style="height:${gridH}px">
                   ${hours.map((h) => {
@@ -647,7 +712,7 @@
                         const sDec = Math.max(startHour, s.getHours() + s.getMinutes() / 60);
                         const eDec = Math.min(endHour, Math.max(sDec + 0.5, e.getHours() + e.getMinutes() / 60));
                         const topPx = (sDec - startHour) * hourH;
-                        const hPx = Math.max(28, (eDec - sDec) * hourH);
+                        const hPx = Math.max(30, (eDec - sDec) * hourH);
 
                         return `
                           <div style="top:${topPx}px;height:${hPx}px" class="absolute ${overlap ? "left-1.5 right-5" : "left-1 right-1"} rounded-xl border px-2.5 py-1.5 overflow-hidden ${m.card} shadow-2xs">
