@@ -24,22 +24,39 @@
 <body class="min-h-screen flex flex-col">
   <!-- Sticky Top Dashboard Header -->
   <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3">
-    <div class="max-w-[1680px] mx-auto flex flex-wrap items-center justify-between gap-4">
+    <div class="max-w-[1680px] mx-auto flex flex-wrap items-center justify-between gap-3">
       <!-- Top-Left Calendar Title -->
       <div class="flex items-center">
-        <h1 class="text-2xl sm:text-[26px] font-extrabold tracking-tight text-slate-900 leading-tight">The Warren Family</h1>
+        <h1 class="text-2xl sm:text-[28px] font-extrabold tracking-tight text-slate-900 leading-tight">The Warren Family</h1>
       </div>
 
-      <!-- Member Filter Pills with Event Counts -->
-      <div id="memberFilterBar" class="flex flex-wrap items-center gap-2"></div>
+      <!-- Top-Right Navigation + Date/Time + Weather -->
+      <div class="flex flex-wrap items-center justify-end gap-3 sm:gap-4">
+        <!-- Navigation Controls (Top-Right, no date range label) -->
+        <div id="topNavControls" class="flex flex-wrap items-center gap-2">
+          <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
+            <button onclick="shiftWindow(-1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&lsaquo;</button>
+            <button onclick="goToday()" class="px-2.5 h-8 rounded-lg hover:bg-white text-xs font-bold text-slate-800">Today</button>
+            <button onclick="shiftWindow(1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&rsaquo;</button>
+          </div>
 
-      <!-- Top-Right Date/Time + Weather Side by Side -->
-      <div class="flex items-center gap-4">
-        <div class="text-right">
+          <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
+            <button id="step7Btn" onclick="setStep(7)" class="px-2.5 h-8 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-2xs">7d</button>
+            <button id="step1Btn" onclick="setStep(1)" class="px-2.5 h-8 rounded-lg text-xs font-bold transition text-slate-600">1d</button>
+          </div>
+
+          <button id="weekendToggleBtn" onclick="toggleWeekend()" class="h-8 px-3 rounded-xl border text-xs font-bold transition bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
+            Weekend: Off
+          </button>
+        </div>
+
+        <!-- Date / Time -->
+        <div class="text-right border-l border-slate-200 pl-3 sm:pl-4">
           <div id="liveClock" class="text-2xl sm:text-[26px] font-extrabold tracking-tight text-slate-900 leading-none">20:15</div>
           <div id="liveDateLine" class="text-sm font-semibold text-slate-600 mt-1">Friday 27 Nov</div>
         </div>
 
+        <!-- Weather -->
         <div class="flex items-center gap-2.5 bg-amber-50/80 border border-amber-200/80 rounded-2xl px-3.5 py-2">
           <span class="text-xl leading-none">☀️</span>
           <div>
@@ -170,7 +187,7 @@
       { id: "r5", icon: "👟", label: "Shoes on", hamish: false, seb: false }
     ];
 
-    const STORAGE_KEY = "my_family_calendar_state_v5";
+    const STORAGE_KEY = "my_family_calendar_state_v6";
     const FALLBACK_EVENTS = buildSampleEvents();
 
     let state = loadState();
@@ -178,6 +195,7 @@
     let viewMode = "grid"; // "grid" | "list"
     let stepDays = 7; // 7 (week-by-week) or 1
     let editingRoutine = false;
+    let scrollRoutineIntoView = false;
     let liveEvents = [];
     let feedStatuses = [];
     let usingFallback = true;
@@ -381,7 +399,6 @@
         return { ev, sMs, eMs, col: 0, cols: 1 };
       }).sort((a, b) => a.sMs - b.sMs || b.eMs - a.eMs);
 
-      // Build connected overlap clusters
       const clusters = [];
       let currentCluster = [];
       let clusterEnd = -Infinity;
@@ -398,7 +415,6 @@
       }
       if (currentCluster.length > 0) clusters.push(currentCluster);
 
-      // Assign side-by-side columns within each overlapping cluster
       for (const cluster of clusters) {
         const colEndTimes = [];
         for (const item of cluster) {
@@ -496,13 +512,18 @@
 
     function toggleMorningRoutineDrawer() {
       state.showMorningRoutine = !state.showMorningRoutine;
-      if (!state.showMorningRoutine) editingRoutine = false;
+      if (!state.showMorningRoutine) {
+        editingRoutine = false;
+      } else {
+        scrollRoutineIntoView = true;
+      }
       saveState();
       render();
     }
 
     function toggleEditRoutine() {
       editingRoutine = !editingRoutine;
+      scrollRoutineIntoView = true;
       render();
     }
 
@@ -543,6 +564,7 @@
         hamish: false,
         seb: false
       });
+      scrollRoutineIntoView = true;
       saveState();
       render();
     }
@@ -595,12 +617,38 @@
       render();
     }
 
-    function renderMemberBar() {
-      const bar = document.getElementById("memberFilterBar");
+    function syncTopControls() {
+      const topNav = document.getElementById("topNavControls");
+      if (topNav) {
+        topNav.style.display = activeSection === "schedule" ? "flex" : "none";
+      }
+
+      const s7 = document.getElementById("step7Btn");
+      const s1 = document.getElementById("step1Btn");
+      if (s7 && s1) {
+        s7.className = `px-2.5 h-8 rounded-lg text-xs font-bold transition ${stepDays === 7 ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600"}`;
+        s1.className = `px-2.5 h-8 rounded-lg text-xs font-bold transition ${stepDays === 1 ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600"}`;
+      }
+
+      const wk = document.getElementById("weekendToggleBtn");
+      if (wk) {
+        wk.textContent = state.showWeekend ? "Weekend: On" : "Weekend: Off";
+        wk.className = `h-8 px-3 rounded-xl border text-xs font-bold transition ${
+          state.showWeekend ? "bg-sky-50 border-sky-300 text-sky-900" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+        }`;
+      }
+
+      const todoBadge = document.getElementById("todoBadge");
+      if (todoBadge) {
+        todoBadge.textContent = String(state.todos.filter((t) => !t.done).length);
+      }
+    }
+
+    function renderMemberFilterRow() {
       const allSelected = state.selectedMembers.length === MEMBERS.length;
 
       const allBtn = `
-        <button onclick="selectAllMembers()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition ${
+        <button onclick="selectAllMembers()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold transition ${
           allSelected ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
         }">
           <span>All Family</span>
@@ -612,7 +660,7 @@
         const active = state.selectedMembers.includes(m.id);
         const count = liveEvents.filter((e) => e.memberId === m.id).length;
         return `
-          <button onclick="toggleMember('${m.id}')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition ${
+          <button onclick="toggleMember('${m.id}')" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold transition ${
             active ? m.pill : "bg-slate-100 border-slate-200 text-slate-400 opacity-65"
           }">
             <span class="w-2 h-2 rounded-full ${m.dot}"></span>
@@ -622,12 +670,11 @@
         `;
       }).join("");
 
-      bar.innerHTML = allBtn + memberBtns;
-
-      const todoBadge = document.getElementById("todoBadge");
-      if (todoBadge) {
-        todoBadge.textContent = String(state.todos.filter((t) => !t.done).length);
-      }
+      return `
+        <div class="flex flex-wrap items-center gap-2 bg-white rounded-2xl border border-slate-200 px-3.5 py-2 shadow-2xs">
+          ${allBtn + memberBtns}
+        </div>
+      `;
     }
 
     function memberObj(id) {
@@ -643,9 +690,9 @@
     function renderMorningRoutineDrawer() {
       if (!state.showMorningRoutine) return "";
       return `
-        <section class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col gap-3">
+        <section id="morningRoutinePanel" class="bg-white rounded-2xl border border-sky-200 p-4 shadow-md flex flex-col gap-3">
           <div class="flex items-center justify-between gap-2">
-            <h2 class="text-sm font-extrabold text-slate-900">Morning Routine · Hamish &amp; Seb</h2>
+            <h2 class="text-base font-extrabold text-slate-900">Morning Routine · Hamish &amp; Seb</h2>
             <div class="flex items-center gap-2">
               <button onclick="toggleEditRoutine()" class="px-3 py-1.5 rounded-xl border text-xs font-bold transition ${
                 editingRoutine ? "bg-sky-50 border-sky-300 text-sky-800" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200"
@@ -676,7 +723,7 @@
                 ` : `
                   <div class="flex items-center gap-2.5 min-w-0">
                     <span class="text-base shrink-0">${esc(r.icon || "⭐")}</span>
-                    <span class="text-xs font-bold text-slate-800 truncate">${esc(r.label)}</span>
+                    <span class="text-xs font-bold text-slate-800 whitespace-normal break-words leading-snug">${esc(r.label)}</span>
                   </div>
                   <div class="flex items-center gap-1.5 shrink-0">
                     <button onclick="toggleRoutineCheck('${r.id}', 'hamish')" class="px-2.5 py-1 rounded-xl border text-[11px] font-bold transition ${
@@ -701,25 +748,23 @@
     function renderSchedule() {
       const days = getVisibleDays();
       const todayKey = dateKey(new Date());
-      const firstLabel = days[0]?.toLocaleDateString([], { day: "numeric", month: "short" }) || "";
-      const lastLabel = days[days.length - 1]?.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" }) || "";
       const colCount = days.length;
 
       let calendarBody = "";
 
       if (viewMode === "list") {
         calendarBody = `
-          <div class="smooth-scroll overflow-auto flex-1 min-h-[420px] max-h-[calc(100vh-210px)] rounded-2xl">
-            <div class="grid gap-3 min-h-[560px]" style="grid-template-columns: repeat(${colCount}, minmax(210px, 1fr))">
+          <div class="smooth-scroll overflow-auto flex-1 min-h-[380px] max-h-[calc(100vh-235px)] rounded-2xl">
+            <div class="grid gap-3 min-h-[540px]" style="grid-template-columns: repeat(${colCount}, minmax(210px, 1fr))">
               ${days.map((d) => {
                 const k = dateKey(d);
                 const isToday = k === todayKey;
                 const events = getEventsForDay(d);
                 return `
-                  <section class="bg-white rounded-2xl border ${isToday ? "border-sky-400" : "border-slate-200"} flex flex-col min-h-[560px] shadow-2xs">
+                  <section class="bg-white rounded-2xl border ${isToday ? "border-sky-400" : "border-slate-200"} flex flex-col min-h-[540px] shadow-2xs">
                     <div class="sticky top-0 z-20 bg-white/95 backdrop-blur rounded-t-2xl p-3 border-b border-slate-100">
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-sm font-extrabold text-slate-900">${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}</span>
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-base sm:text-lg font-extrabold text-slate-900 leading-tight">${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}</span>
                         ${isToday ? '<span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 text-[10px] font-extrabold uppercase">Today</span>' : ""}
                       </div>
                       ${renderOfficeTogglePair(d)}
@@ -732,11 +777,11 @@
                             const m = memberObj(ev.memberId);
                             return `
                               <div class="rounded-xl border p-2.5 ${m.card}">
-                                <div class="flex items-center justify-between gap-1">
-                                  <span class="text-xs font-extrabold leading-snug">${esc(ev.title)}</span>
+                                <div class="flex items-start justify-between gap-1.5">
+                                  <span class="text-xs font-extrabold whitespace-normal break-words leading-snug">${esc(ev.title)}</span>
                                   <span class="w-5 h-5 rounded-full text-[10px] font-extrabold flex items-center justify-center shrink-0 ${m.badgeBg}">${m.badge}</span>
                                 </div>
-                                <div class="text-[11px] opacity-80 mt-0.5">${fmtRange(ev)}</div>
+                                <div class="text-[11px] opacity-85 mt-1 whitespace-normal break-words leading-snug">${fmtRange(ev)}</div>
                               </div>
                             `;
                           }).join("")}
@@ -750,12 +795,12 @@
       } else {
         const startHour = 8;
         const endHour = 20;
-        const hourH = 58;
+        const hourH = 62;
         const gridH = (endHour - startHour) * hourH;
         const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
 
         calendarBody = `
-          <div class="smooth-scroll bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-auto flex-1 min-h-[420px] max-h-[calc(100vh-210px)]">
+          <div class="smooth-scroll bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-auto flex-1 min-h-[380px] max-h-[calc(100vh-235px)]">
             <div class="min-w-[820px]">
               <!-- Sticky Day + Office/WFH Header Row inside scroll pane -->
               <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-200 px-3 pt-2.5 pb-2 grid gap-2" style="grid-template-columns: 60px repeat(${colCount}, minmax(0, 1fr))">
@@ -764,8 +809,8 @@
                   const isToday = dateKey(d) === todayKey;
                   return `
                     <div class="px-1">
-                      <div class="flex items-center gap-1.5">
-                        <span class="text-sm font-extrabold text-slate-900">${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}</span>
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-base sm:text-lg font-extrabold text-slate-900 leading-tight">${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}</span>
                         ${isToday ? '<span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 text-[10px] font-extrabold uppercase">Today</span>' : ""}
                       </div>
                       ${renderOfficeTogglePair(d)}
@@ -784,9 +829,9 @@
                       ${allDayEvs.map((ev) => {
                         const m = memberObj(ev.memberId);
                         return `
-                          <div class="rounded-lg border px-2 py-1 text-[11px] font-bold flex items-center justify-between gap-1 ${m.card}">
-                            <span class="truncate">${esc(ev.title)}</span>
-                            <span class="w-4 h-4 rounded-full text-[9px] font-extrabold flex items-center justify-center shrink-0 ${m.badgeBg}">${m.badge}</span>
+                          <div class="rounded-lg border px-2 py-1 text-[11px] font-bold flex items-start justify-between gap-1 ${m.card}">
+                            <span class="whitespace-normal break-words leading-snug">${esc(ev.title)}</span>
+                            <span class="w-4 h-4 rounded-full text-[9px] font-extrabold flex items-center justify-center shrink-0 mt-0.5 ${m.badgeBg}">${m.badge}</span>
                           </div>
                         `;
                       }).join("")}
@@ -818,18 +863,18 @@
                         const sDec = Math.max(startHour, s.getHours() + s.getMinutes() / 60);
                         const eDec = Math.min(endHour, Math.max(sDec + 0.5, e.getHours() + e.getMinutes() / 60));
                         const topPx = (sDec - startHour) * hourH;
-                        const hPx = Math.max(30, (eDec - sDec) * hourH);
+                        const minH = Math.max(36, (eDec - sDec) * hourH);
                         const widthPct = 100 / cols;
                         const leftPct = col * widthPct;
 
                         return `
-                          <div style="top:${topPx}px;height:${hPx}px;left:calc(${leftPct}% + 3px);width:calc(${widthPct}% - 6px)" class="absolute rounded-xl border px-2 py-1.5 overflow-hidden ${m.card} shadow-2xs">
+                          <div style="top:${topPx}px;min-height:${minH}px;left:calc(${leftPct}% + 3px);width:calc(${widthPct}% - 6px)" class="absolute z-10 hover:z-20 rounded-xl border px-2 py-1.5 ${m.card} shadow-2xs">
                             <div class="flex items-start justify-between gap-1">
-                              <div class="min-w-0">
-                                <div class="text-xs font-extrabold leading-tight truncate">${esc(ev.title)}</div>
-                                <div class="text-[11px] opacity-80 truncate">${fmtRange(ev)}</div>
+                              <div class="min-w-0 flex-1">
+                                <div class="text-xs font-extrabold whitespace-normal break-words leading-snug">${esc(ev.title)}</div>
+                                <div class="text-[11px] opacity-85 whitespace-normal break-words leading-snug mt-0.5">${fmtRange(ev)}</div>
                               </div>
-                              <span class="w-4 h-4 rounded-full text-[9px] font-extrabold flex items-center justify-center shrink-0 ${m.badgeBg}">${m.badge}</span>
+                              <span class="w-4 h-4 rounded-full text-[9px] font-extrabold flex items-center justify-center shrink-0 mt-0.5 ${m.badgeBg}">${m.badge}</span>
                             </div>
                           </div>
                         `;
@@ -845,46 +890,34 @@
 
       const bottomToolbar = `
         <div class="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-2 bg-white/95 backdrop-blur rounded-2xl border border-slate-200 px-3.5 py-2.5 shadow-xs">
-          <div class="flex flex-wrap items-center gap-2">
-            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
-              <button onclick="shiftWindow(-1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&lsaquo;</button>
-              <button onclick="goToday()" class="px-2.5 h-8 rounded-lg hover:bg-white text-xs font-bold text-slate-800">Today</button>
-              <button onclick="shiftWindow(1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&rsaquo;</button>
-            </div>
-
-            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
-              <button onclick="setStep(7)" class="px-2.5 h-8 rounded-lg text-xs font-bold transition ${stepDays === 7 ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600"}">7d</button>
-              <button onclick="setStep(1)" class="px-2.5 h-8 rounded-lg text-xs font-bold transition ${stepDays === 1 ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600"}">1d</button>
-            </div>
-
-            <button onclick="toggleWeekend()" class="h-8 px-3 rounded-xl border text-xs font-bold transition ${
-              state.showWeekend ? "bg-sky-50 border-sky-300 text-sky-900" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-            }">
-              ${state.showWeekend ? "Weekend: On" : "Weekend: Off"}
-            </button>
-
-            <span class="text-sm font-extrabold text-slate-900 ml-1">${firstLabel} – ${lastLabel}</span>
+          <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
+            <button onclick="setViewMode('list')" class="px-3.5 h-8 rounded-lg text-xs font-bold transition ${viewMode === "list" ? "bg-sky-100 text-sky-950 shadow-2xs" : "text-slate-700"}">List Cards</button>
+            <button onclick="setViewMode('grid')" class="px-3.5 h-8 rounded-lg text-xs font-bold transition ${viewMode === "grid" ? "bg-sky-100 text-sky-950 shadow-2xs" : "text-slate-700"}">Time Grid</button>
           </div>
 
-          <div class="flex items-center gap-2">
-            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
-              <button onclick="setViewMode('list')" class="px-3 h-8 rounded-lg text-xs font-bold transition ${viewMode === "list" ? "bg-sky-100 text-sky-950 shadow-2xs" : "text-slate-700"}">List Cards</button>
-              <button onclick="setViewMode('grid')" class="px-3 h-8 rounded-lg text-xs font-bold transition ${viewMode === "grid" ? "bg-sky-100 text-sky-950 shadow-2xs" : "text-slate-700"}">Time Grid</button>
-            </div>
-
-            <button onclick="toggleMorningRoutineDrawer()" class="flex items-center gap-2 h-8 px-3 rounded-xl border text-xs font-bold transition ${
-              state.showMorningRoutine ? "bg-sky-50 border-sky-300 text-sky-900" : "bg-white border-slate-200 text-slate-700"
-            }">
-              <span>Morning Routine</span>
-              <span class="w-7 h-4 rounded-full p-0.5 flex items-center transition ${state.showMorningRoutine ? "bg-sky-500 justify-end" : "bg-slate-300 justify-start"}">
-                <span class="w-3 h-3 rounded-full bg-white block"></span>
-              </span>
-            </button>
-          </div>
+          <button onclick="toggleMorningRoutineDrawer()" class="flex items-center gap-2 h-8 px-3.5 rounded-xl border text-xs font-bold transition ${
+            state.showMorningRoutine ? "bg-sky-50 border-sky-300 text-sky-900" : "bg-white border-slate-200 text-slate-700"
+          }">
+            <span>Morning Routine</span>
+            <span class="w-7 h-4 rounded-full p-0.5 flex items-center transition ${state.showMorningRoutine ? "bg-sky-500 justify-end" : "bg-slate-300 justify-start"}">
+              <span class="w-3 h-3 rounded-full bg-white block"></span>
+            </span>
+          </button>
         </div>
       `;
 
-      document.getElementById("mainContent").innerHTML = calendarBody + renderMorningRoutineDrawer() + bottomToolbar;
+      document.getElementById("mainContent").innerHTML =
+        renderMemberFilterRow() +
+        calendarBody +
+        renderMorningRoutineDrawer() +
+        bottomToolbar;
+
+      if (scrollRoutineIntoView && state.showMorningRoutine) {
+        scrollRoutineIntoView = false;
+        requestAnimationFrame(() => {
+          document.getElementById("morningRoutinePanel")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+      }
     }
 
     function renderTodo() {
@@ -1007,7 +1040,7 @@
 
     function render() {
       updateClock();
-      renderMemberBar();
+      syncTopControls();
       if (activeSection === "schedule") renderSchedule();
       else if (activeSection === "todo") renderTodo();
       else if (activeSection === "plans") renderPlans();
