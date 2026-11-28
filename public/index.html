@@ -167,7 +167,7 @@
       { id: "r5", icon: "👟", label: "Shoes on", hamish: false, seb: false }
     ];
 
-    const STORAGE_KEY = "my_family_calendar_state_v7";
+    const STORAGE_KEY = "my_family_calendar_state_v8";
     const FALLBACK_EVENTS = buildSampleEvents();
 
     let state = loadState();
@@ -175,7 +175,6 @@
     let viewMode = "grid"; // "grid" | "list"
     let stepDays = 7; // 7 (week-by-week) or 1
     let editingRoutine = false;
-    let scrollRoutineIntoView = false;
     let liveEvents = [];
     let feedStatuses = [];
     let usingFallback = true;
@@ -508,8 +507,6 @@
       state.showMorningRoutine = !state.showMorningRoutine;
       if (!state.showMorningRoutine) {
         editingRoutine = false;
-      } else {
-        scrollRoutineIntoView = true;
       }
       saveState();
       render();
@@ -517,7 +514,6 @@
 
     function toggleEditRoutine() {
       editingRoutine = !editingRoutine;
-      scrollRoutineIntoView = true;
       render();
     }
 
@@ -558,7 +554,6 @@
         hamish: false,
         seb: false
       });
-      scrollRoutineIntoView = true;
       saveState();
       render();
     }
@@ -605,12 +600,6 @@
       render();
     }
 
-    function selectAllMembers() {
-      state.selectedMembers = MEMBERS.map((m) => m.id);
-      saveState();
-      render();
-    }
-
     function syncBadges() {
       const todoBadge = document.getElementById("todoBadge");
       if (todoBadge) {
@@ -619,17 +608,6 @@
     }
 
     function renderFilterAndNavBar() {
-      const allSelected = state.selectedMembers.length === MEMBERS.length;
-
-      const allBtn = `
-        <button onclick="selectAllMembers()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-bold transition ${
-          allSelected ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-        }">
-          <span>All Family</span>
-          <span class="px-1.5 py-0.2 rounded-full text-[10px] ${allSelected ? "bg-white/20 text-white" : "bg-slate-100 text-slate-700"}">${liveEvents.length}</span>
-        </button>
-      `;
-
       const memberBtns = MEMBERS.map((m) => {
         const active = state.selectedMembers.includes(m.id);
         const count = liveEvents.filter((e) => e.memberId === m.id).length;
@@ -666,9 +644,9 @@
       `;
 
       return `
-        <div class="flex flex-wrap items-center justify-between gap-2 bg-white rounded-2xl border border-slate-200 px-3.5 py-2 shadow-2xs">
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-white rounded-2xl border border-slate-200 px-3.5 py-2 shadow-2xs shrink-0">
           <div class="flex flex-wrap items-center gap-2">
-            ${allBtn + memberBtns}
+            ${memberBtns}
           </div>
           ${navRight}
         </div>
@@ -688,48 +666,48 @@
     function renderMorningRoutineDrawer() {
       if (!state.showMorningRoutine) return "";
       return `
-        <section id="morningRoutinePanel" class="bg-white rounded-2xl border border-sky-200 p-4 shadow-md flex flex-col gap-3">
+        <section id="morningRoutinePanel" class="bg-white rounded-2xl border border-sky-200 p-3.5 shadow-sm flex flex-col gap-2.5 shrink-0 max-h-[260px] overflow-y-auto smooth-scroll">
           <div class="flex items-center justify-between gap-2">
-            <h2 class="text-base font-extrabold text-slate-900">Morning Routine · Hamish &amp; Seb</h2>
+            <h2 class="text-sm font-extrabold text-slate-900">Morning Routine · Hamish &amp; Seb</h2>
             <div class="flex items-center gap-2">
-              <button onclick="toggleEditRoutine()" class="px-3 py-1.5 rounded-xl border text-xs font-bold transition ${
+              <button onclick="toggleEditRoutine()" class="px-3 py-1 rounded-xl border text-xs font-bold transition ${
                 editingRoutine ? "bg-sky-50 border-sky-300 text-sky-800" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200"
               }">${editingRoutine ? "Done" : "Edit"}</button>
-              <button onclick="resetRoutineChecks()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700">
+              <button onclick="resetRoutineChecks()" class="px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700">
                 Reset
               </button>
             </div>
           </div>
 
           ${editingRoutine ? `
-            <form onsubmit="addRoutineTask(event)" class="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 border border-slate-200/80 rounded-xl p-2.5">
-              <input id="newRoutineIcon" type="text" maxlength="4" placeholder="⭐" class="w-14 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-center" />
-              <input id="newRoutineLabel" type="text" placeholder="New morning task for Hamish & Seb…" class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm" />
-              <button class="px-3.5 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-bold hover:bg-sky-700">Add Task</button>
+            <form onsubmit="addRoutineTask(event)" class="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 border border-slate-200/80 rounded-xl p-2">
+              <input id="newRoutineIcon" type="text" maxlength="4" placeholder="⭐" class="w-12 rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm text-center" />
+              <input id="newRoutineLabel" type="text" placeholder="New morning task for Hamish & Seb…" class="flex-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs" />
+              <button class="px-3 py-1 rounded-lg bg-sky-600 text-white text-xs font-bold hover:bg-sky-700">Add Task</button>
             </form>
           ` : ""}
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
             ${state.routine.map((r) => `
-              <div class="flex items-center justify-between gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/60 px-3.5 py-2.5">
+              <div class="flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-slate-50/60 px-3 py-2">
                 ${editingRoutine ? `
                   <div class="flex items-center gap-2 flex-1 min-w-0">
-                    <input type="text" value="${esc(r.icon || "⭐")}" onchange="updateRoutineIcon('${r.id}', this.value)" class="w-11 rounded-lg border border-slate-300 bg-white px-1.5 py-1 text-sm text-center shrink-0" />
-                    <input type="text" value="${esc(r.label)}" onchange="updateRoutineLabel('${r.id}', this.value)" class="flex-1 min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-800" />
-                    <button onclick="removeRoutineTask('${r.id}')" title="Delete task" class="px-2 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 shrink-0">✕</button>
+                    <input type="text" value="${esc(r.icon || "⭐")}" onchange="updateRoutineIcon('${r.id}', this.value)" class="w-10 rounded-lg border border-slate-300 bg-white px-1 py-0.5 text-sm text-center shrink-0" />
+                    <input type="text" value="${esc(r.label)}" onchange="updateRoutineLabel('${r.id}', this.value)" class="flex-1 min-w-0 rounded-lg border border-slate-300 bg-white px-2 py-0.5 text-xs font-bold text-slate-800" />
+                    <button onclick="removeRoutineTask('${r.id}')" title="Delete task" class="px-2 py-0.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 shrink-0">✕</button>
                   </div>
                 ` : `
-                  <div class="flex items-center gap-2.5 min-w-0">
-                    <span class="text-base shrink-0">${esc(r.icon || "⭐")}</span>
+                  <div class="flex items-center gap-2 min-w-0">
+                    <span class="text-sm shrink-0">${esc(r.icon || "⭐")}</span>
                     <span class="text-xs font-bold text-slate-800 whitespace-normal break-words leading-snug">${esc(r.label)}</span>
                   </div>
                   <div class="flex items-center gap-1.5 shrink-0">
-                    <button onclick="toggleRoutineCheck('${r.id}', 'hamish')" class="px-2.5 py-1 rounded-xl border text-[11px] font-bold transition ${
+                    <button onclick="toggleRoutineCheck('${r.id}', 'hamish')" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition ${
                       r.hamish
                         ? "bg-teal-100 border-teal-300 text-teal-950 line-through"
                         : "bg-white border-teal-200 text-teal-800"
                     }">${r.hamish ? "✓ Hamish" : "Hamish"}</button>
-                    <button onclick="toggleRoutineCheck('${r.id}', 'seb')" class="px-2.5 py-1 rounded-xl border text-[11px] font-bold transition ${
+                    <button onclick="toggleRoutineCheck('${r.id}', 'seb')" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition ${
                       r.seb
                         ? "bg-amber-200 border-amber-400 text-amber-950 line-through"
                         : "bg-white border-amber-300 text-amber-900"
@@ -747,19 +725,22 @@
       const days = getVisibleDays();
       const todayKey = dateKey(new Date());
       const colCount = days.length;
+      const panelHeightClass = state.showMorningRoutine
+        ? "max-h-[calc(100vh-485px)] min-h-[220px]"
+        : "max-h-[calc(100vh-235px)] min-h-[380px]";
 
       let calendarBody = "";
 
       if (viewMode === "list") {
         calendarBody = `
-          <div class="smooth-scroll overflow-auto flex-1 min-h-[380px] max-h-[calc(100vh-235px)] rounded-2xl">
-            <div class="grid gap-3 min-h-[540px]" style="grid-template-columns: repeat(${colCount}, minmax(210px, 1fr))">
+          <div class="smooth-scroll overflow-auto flex-1 ${panelHeightClass} rounded-2xl transition-[max-height] duration-200">
+            <div class="grid gap-3 h-full min-h-[420px]" style="grid-template-columns: repeat(${colCount}, minmax(210px, 1fr))">
               ${days.map((d) => {
                 const k = dateKey(d);
                 const isToday = k === todayKey;
                 const events = getEventsForDay(d);
                 return `
-                  <section class="bg-white rounded-2xl border ${isToday ? "border-sky-400" : "border-slate-200"} flex flex-col min-h-[540px] shadow-2xs">
+                  <section class="bg-white rounded-2xl border ${isToday ? "border-sky-400" : "border-slate-200"} flex flex-col min-h-[420px] shadow-2xs">
                     <div class="sticky top-0 z-20 bg-white/95 backdrop-blur rounded-t-2xl p-3 border-b border-slate-100">
                       <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-base sm:text-lg font-extrabold text-slate-900 leading-tight">${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}</span>
@@ -798,7 +779,7 @@
         const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
 
         calendarBody = `
-          <div class="smooth-scroll bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-auto flex-1 min-h-[380px] max-h-[calc(100vh-235px)]">
+          <div class="smooth-scroll bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-auto flex-1 ${panelHeightClass} transition-[max-height] duration-200">
             <div class="min-w-[820px]">
               <!-- Sticky Day + Office/WFH Header Row inside scroll pane -->
               <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-200 px-3 pt-2.5 pb-2 grid gap-2" style="grid-template-columns: 60px repeat(${colCount}, minmax(0, 1fr))">
@@ -887,7 +868,7 @@
       }
 
       const bottomToolbar = `
-        <div class="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-2 bg-white/95 backdrop-blur rounded-2xl border border-slate-200 px-3.5 py-2.5 shadow-xs">
+        <div class="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-2 bg-white/95 backdrop-blur rounded-2xl border border-slate-200 px-3.5 py-2.5 shadow-xs shrink-0">
           <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
             <button onclick="setViewMode('list')" class="px-3.5 h-8 rounded-lg text-xs font-bold transition ${viewMode === "list" ? "bg-sky-100 text-sky-950 shadow-2xs" : "text-slate-700"}">List Cards</button>
             <button onclick="setViewMode('grid')" class="px-3.5 h-8 rounded-lg text-xs font-bold transition ${viewMode === "grid" ? "bg-sky-100 text-sky-950 shadow-2xs" : "text-slate-700"}">Time Grid</button>
@@ -909,13 +890,6 @@
         calendarBody +
         renderMorningRoutineDrawer() +
         bottomToolbar;
-
-      if (scrollRoutineIntoView && state.showMorningRoutine) {
-        scrollRoutineIntoView = false;
-        requestAnimationFrame(() => {
-          document.getElementById("morningRoutinePanel")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        });
-      }
     }
 
     function renderTodo() {
