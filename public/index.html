@@ -23,28 +23,29 @@
 </head>
 <body class="min-h-screen flex flex-col">
   <!-- Sticky Top Dashboard Header -->
-  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-2.5">
-    <div class="max-w-[1680px] mx-auto flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-5">
-        <div>
-          <div id="liveClock" class="text-2xl font-extrabold tracking-tight text-slate-900 leading-none">20:15</div>
-          <div id="liveDateLine" class="text-xs font-medium text-slate-500 mt-1">Friday 27 Nov</div>
-        </div>
-        <div class="border-l border-slate-200 pl-4">
-          <h1 class="text-lg font-extrabold tracking-tight text-slate-900 leading-tight">The Warren Family</h1>
-          <p id="syncMeta" class="text-xs text-slate-500">my-family-calendar · Connecting…</p>
-        </div>
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3">
+    <div class="max-w-[1680px] mx-auto flex flex-wrap items-center justify-between gap-4">
+      <!-- Top-Left Calendar Title -->
+      <div class="flex items-center">
+        <h1 class="text-2xl sm:text-[26px] font-extrabold tracking-tight text-slate-900 leading-tight">The Warren Family</h1>
       </div>
 
       <!-- Member Filter Pills with Event Counts -->
       <div id="memberFilterBar" class="flex flex-wrap items-center gap-2"></div>
 
-      <!-- Weather Pill -->
-      <div class="flex items-center gap-2 bg-amber-50/80 border border-amber-200/80 rounded-2xl px-3.5 py-2">
-        <span class="text-lg leading-none">☀️</span>
-        <div>
-          <div class="text-xs font-extrabold text-slate-900 leading-tight">22°C</div>
-          <div class="text-[11px] text-slate-500 leading-tight">Sunny &amp; Breezy</div>
+      <!-- Top-Right Date/Time + Weather Side by Side -->
+      <div class="flex items-center gap-4">
+        <div class="text-right">
+          <div id="liveClock" class="text-2xl sm:text-[26px] font-extrabold tracking-tight text-slate-900 leading-none">20:15</div>
+          <div id="liveDateLine" class="text-sm font-semibold text-slate-600 mt-1">Friday 27 Nov</div>
+        </div>
+
+        <div class="flex items-center gap-2.5 bg-amber-50/80 border border-amber-200/80 rounded-2xl px-3.5 py-2">
+          <span class="text-xl leading-none">☀️</span>
+          <div>
+            <div class="text-sm font-extrabold text-slate-900 leading-tight">22°C</div>
+            <div class="text-xs text-slate-500 leading-tight">Sunny &amp; Breezy</div>
+          </div>
         </div>
       </div>
     </div>
@@ -94,15 +95,18 @@
         </button>
       </div>
 
-      <!-- Sync Button in Left Menu -->
-      <button onclick="refreshEvents(true)" class="mt-4 flex flex-col items-center justify-center gap-1 py-3 px-2 rounded-2xl bg-slate-900 text-white hover:bg-slate-800 active:scale-[0.99] transition shadow-2xs">
-        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 4 23 10 17 10"></polyline>
-          <polyline points="1 20 1 14 7 14"></polyline>
-          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-        </svg>
-        <span class="text-xs font-bold">Sync</span>
-      </button>
+      <!-- Sync Button + Sync Time in Left Menu -->
+      <div class="mt-4 flex flex-col items-center gap-1.5">
+        <button onclick="refreshEvents(true)" class="w-full flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-2xl bg-slate-50 text-slate-700 border border-slate-200/90 hover:bg-slate-100 active:scale-[0.99] transition">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span class="text-xs font-bold">Sync</span>
+        </button>
+        <div id="syncMeta" class="text-[11px] font-medium text-slate-400 text-center leading-tight px-1">Connecting…</div>
+      </div>
     </aside>
 
     <!-- Main Content -->
@@ -161,18 +165,19 @@
     const DEFAULT_ROUTINE = [
       { id: "r1", icon: "🥣", label: "Eat brekkie", hamish: false, seb: false },
       { id: "r2", icon: "🪥", label: "Clean teeth", hamish: false, seb: false },
-      { id: "r3", icon: " polo", label: "Get dressed", hamish: false, seb: false },
+      { id: "r3", icon: "👔", label: "Get dressed", hamish: false, seb: false },
       { id: "r4", icon: "🎒", label: "Pack bag", hamish: false, seb: false },
       { id: "r5", icon: "👟", label: "Shoes on", hamish: false, seb: false }
     ];
 
-    const STORAGE_KEY = "my_family_calendar_state_v4";
+    const STORAGE_KEY = "my_family_calendar_state_v5";
     const FALLBACK_EVENTS = buildSampleEvents();
 
     let state = loadState();
     let activeSection = "schedule";
     let viewMode = "grid"; // "grid" | "list"
     let stepDays = 7; // 7 (week-by-week) or 1
+    let editingRoutine = false;
     let liveEvents = [];
     let feedStatuses = [];
     let usingFallback = true;
@@ -273,6 +278,7 @@
         mkAllDay(2, "hamish", "School Sports Carnival"),
         mkTimed(0, 8, 30, 9, 15, "nat", "School drop-off"),
         mkTimed(0, 9, 0, 11, 30, "rob", "Product roadmap sync"),
+        mkTimed(0, 9, 30, 10, 45, "family", "Overlap check"),
         mkTimed(1, 9, 30, 10, 30, "rob", "Client design review"),
         mkTimed(2, 15, 30, 16, 30, "hamish", "Swimming lesson"),
         mkTimed(3, 16, 0, 17, 0, "seb", "Lego & reading time"),
@@ -292,7 +298,7 @@
     }
 
     async function refreshEvents(forceRefresh = false) {
-      setSyncText("my-family-calendar · Syncing…");
+      setSyncText("Syncing…");
       try {
         const data = await loadLiveCalendarEvents(forceRefresh);
         if (Array.isArray(data.events)) {
@@ -300,14 +306,14 @@
           feedStatuses = Array.isArray(data.feeds) ? data.feeds : [];
           usingFallback = false;
           const t = new Date(data.syncedAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-          setSyncText(`my-family-calendar · Synced ${t}`);
+          setSyncText(`Synced ${t}`);
         } else {
           throw new Error("Bad response");
         }
       } catch (_) {
         liveEvents = FALLBACK_EVENTS;
         usingFallback = true;
-        setSyncText("my-family-calendar · Sample events (connect Secrets for live .ics)");
+        setSyncText("Sample data");
       }
       render();
     }
@@ -329,6 +335,11 @@
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     }
 
+    function isWeekendDate(d) {
+      const dow = d.getDay();
+      return dow === 0 || dow === 6;
+    }
+
     function getVisibleDays() {
       const start = new Date();
       start.setHours(0, 0, 0, 0);
@@ -338,9 +349,7 @@
       for (let i = 0; i < 7; i++) {
         const d = new Date(start);
         d.setDate(start.getDate() + i);
-        const dow = d.getDay();
-        const isWeekend = dow === 0 || dow === 6;
-        if (!state.showWeekend && isWeekend) continue;
+        if (!state.showWeekend && isWeekendDate(d)) continue;
         days.push(d);
         if (!state.showWeekend && days.length === 5) break;
       }
@@ -365,15 +374,55 @@
         });
     }
 
-    function hasOverlap(ev, timedEvents) {
-      const s1 = new Date(ev.start).getTime();
-      const e1 = new Date(ev.end || ev.start).getTime();
-      return timedEvents.some((other) => {
-        if (other.id === ev.id) return false;
-        const s2 = new Date(other.start).getTime();
-        const e2 = new Date(other.end || other.start).getTime();
-        return s1 < e2 && e1 > s2;
-      });
+    function layoutTimedEvents(timedEvents) {
+      const items = timedEvents.map((ev) => {
+        const sMs = new Date(ev.start).getTime();
+        const eMs = Math.max(sMs + 15 * 60 * 1000, new Date(ev.end || ev.start).getTime());
+        return { ev, sMs, eMs, col: 0, cols: 1 };
+      }).sort((a, b) => a.sMs - b.sMs || b.eMs - a.eMs);
+
+      // Build connected overlap clusters
+      const clusters = [];
+      let currentCluster = [];
+      let clusterEnd = -Infinity;
+
+      for (const item of items) {
+        if (currentCluster.length === 0 || item.sMs < clusterEnd) {
+          currentCluster.push(item);
+          clusterEnd = Math.max(clusterEnd, item.eMs);
+        } else {
+          clusters.push(currentCluster);
+          currentCluster = [item];
+          clusterEnd = item.eMs;
+        }
+      }
+      if (currentCluster.length > 0) clusters.push(currentCluster);
+
+      // Assign side-by-side columns within each overlapping cluster
+      for (const cluster of clusters) {
+        const colEndTimes = [];
+        for (const item of cluster) {
+          let placedCol = -1;
+          for (let c = 0; c < colEndTimes.length; c++) {
+            if (colEndTimes[c] <= item.sMs) {
+              placedCol = c;
+              colEndTimes[c] = item.eMs;
+              break;
+            }
+          }
+          if (placedCol === -1) {
+            placedCol = colEndTimes.length;
+            colEndTimes.push(item.eMs);
+          }
+          item.col = placedCol;
+        }
+        const totalCols = Math.max(1, colEndTimes.length);
+        for (const item of cluster) {
+          item.cols = totalCols;
+        }
+      }
+
+      return items;
     }
 
     function getOffice(key) {
@@ -394,28 +443,28 @@
       render();
     }
 
-    function renderOfficeTogglePair(key) {
+    function renderOfficeTogglePair(dayDate) {
+      if (isWeekendDate(dayDate)) return "";
+      const key = dateKey(dayDate);
       const flags = getOffice(key);
       const natOffice = flags.nat === "office";
       const robOffice = flags.rob === "office";
 
       return `
         <div class="grid grid-cols-2 gap-1.5 mt-2">
-          <button onclick="toggleOffice('${key}', 'nat')" title="Switch Nat between Office and WFH" class="h-8 px-2 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap transition ${
+          <button onclick="toggleOffice('${key}', 'nat')" title="Switch Nat between Office and WFH" class="h-8 px-2 rounded-xl border text-[11px] font-bold flex items-center justify-center whitespace-nowrap transition ${
             natOffice
-              ? "bg-amber-300 border-amber-400 text-amber-950 shadow-2xs"
+              ? "bg-blue-100 border-blue-400 text-blue-950 shadow-2xs"
               : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
           }">
-            <span>${natOffice ? "🏢" : "🏠"}</span>
             <span>${natOffice ? "Nat Office" : "Nat WFH"}</span>
           </button>
 
-          <button onclick="toggleOffice('${key}', 'rob')" title="Switch Rob between Office and WFH" class="h-8 px-2 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1 whitespace-nowrap transition ${
+          <button onclick="toggleOffice('${key}', 'rob')" title="Switch Rob between Office and WFH" class="h-8 px-2 rounded-xl border text-[11px] font-bold flex items-center justify-center whitespace-nowrap transition ${
             robOffice
-              ? "bg-amber-300 border-amber-400 text-amber-950 shadow-2xs"
+              ? "bg-blue-100 border-blue-400 text-blue-950 shadow-2xs"
               : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
           }">
-            <span>${robOffice ? "🏢" : "🏠"}</span>
             <span>${robOffice ? "Rob Office" : "Rob WFH"}</span>
           </button>
         </div>
@@ -428,8 +477,8 @@
       render();
     }
 
-    function goThisWeekMonday() {
-      state.startOffsetDays = getMondayWeekOffset();
+    function goToday() {
+      state.startOffsetDays = 0;
       saveState();
       render();
     }
@@ -447,7 +496,13 @@
 
     function toggleMorningRoutineDrawer() {
       state.showMorningRoutine = !state.showMorningRoutine;
+      if (!state.showMorningRoutine) editingRoutine = false;
       saveState();
+      render();
+    }
+
+    function toggleEditRoutine() {
+      editingRoutine = !editingRoutine;
       render();
     }
 
@@ -455,6 +510,46 @@
       const row = state.routine.find((r) => r.id === id);
       if (!row) return;
       row[child] = !row[child];
+      saveState();
+      render();
+    }
+
+    function updateRoutineLabel(id, value) {
+      const row = state.routine.find((r) => r.id === id);
+      if (!row) return;
+      row.label = value;
+      saveState();
+    }
+
+    function updateRoutineIcon(id, value) {
+      const row = state.routine.find((r) => r.id === id);
+      if (!row) return;
+      row.icon = value.trim() || "⭐";
+      saveState();
+      render();
+    }
+
+    function addRoutineTask(e) {
+      e.preventDefault();
+      const labelEl = document.getElementById("newRoutineLabel");
+      const iconEl = document.getElementById("newRoutineIcon");
+      const label = (labelEl?.value || "").trim();
+      const icon = (iconEl?.value || "").trim() || "⭐";
+      if (!label) return;
+      state.routine.push({
+        id: `r-${Date.now()}`,
+        icon,
+        label,
+        hamish: false,
+        seb: false
+      });
+      saveState();
+      render();
+    }
+
+    function removeRoutineTask(id) {
+      if (state.routine.length <= 1) return;
+      state.routine = state.routine.filter((r) => r.id !== id);
       saveState();
       render();
     }
@@ -545,26 +640,42 @@
       return `${new Date(ev.start).toLocaleTimeString([], opts)}–${new Date(ev.end || ev.start).toLocaleTimeString([], opts)}`;
     }
 
-    function renderMorningRoutineBar() {
+    function renderMorningRoutineDrawer() {
       if (!state.showMorningRoutine) return "";
       return `
-        <section class="bg-white rounded-2xl border border-slate-200 p-4 shadow-2xs flex flex-col gap-3">
-          <div class="flex items-center justify-between">
-            <div>
-              <h2 class="text-sm font-extrabold text-slate-900">Morning Routine · Hamish &amp; Seb</h2>
-              <p class="text-xs text-slate-500">Tap each task chip for Hamish or Seb</p>
+        <section class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col gap-3">
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="text-sm font-extrabold text-slate-900">Morning Routine · Hamish &amp; Seb</h2>
+            <div class="flex items-center gap-2">
+              <button onclick="toggleEditRoutine()" class="px-3 py-1.5 rounded-xl border text-xs font-bold transition ${
+                editingRoutine ? "bg-sky-50 border-sky-300 text-sky-800" : "bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200"
+              }">${editingRoutine ? "Done" : "Edit"}</button>
+              <button onclick="resetRoutineChecks()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700">
+                Reset
+              </button>
             </div>
-            <button onclick="resetRoutineChecks()" class="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-700">
-              Reset
-            </button>
           </div>
+
+          ${editingRoutine ? `
+            <form onsubmit="addRoutineTask(event)" class="flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50 border border-slate-200/80 rounded-xl p-2.5">
+              <input id="newRoutineIcon" type="text" maxlength="4" placeholder="⭐" class="w-14 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-center" />
+              <input id="newRoutineLabel" type="text" placeholder="New morning task for Hamish & Seb…" class="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm" />
+              <button class="px-3.5 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-bold hover:bg-sky-700">Add Task</button>
+            </form>
+          ` : ""}
+
           <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            ${state.routine.map((r) => {
-              const iconGlyph = r.icon === " polo" ? "👔" : r.icon;
-              return `
-                <div class="flex items-center justify-between gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/60 px-3.5 py-2.5">
+            ${state.routine.map((r) => `
+              <div class="flex items-center justify-between gap-2 rounded-2xl border border-slate-200/80 bg-slate-50/60 px-3.5 py-2.5">
+                ${editingRoutine ? `
+                  <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <input type="text" value="${esc(r.icon || "⭐")}" onchange="updateRoutineIcon('${r.id}', this.value)" class="w-11 rounded-lg border border-slate-300 bg-white px-1.5 py-1 text-sm text-center shrink-0" />
+                    <input type="text" value="${esc(r.label)}" onchange="updateRoutineLabel('${r.id}', this.value)" class="flex-1 min-w-0 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-bold text-slate-800" />
+                    <button onclick="removeRoutineTask('${r.id}')" title="Delete task" class="px-2 py-1 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 shrink-0">✕</button>
+                  </div>
+                ` : `
                   <div class="flex items-center gap-2.5 min-w-0">
-                    <span class="text-base shrink-0">${iconGlyph}</span>
+                    <span class="text-base shrink-0">${esc(r.icon || "⭐")}</span>
                     <span class="text-xs font-bold text-slate-800 truncate">${esc(r.label)}</span>
                   </div>
                   <div class="flex items-center gap-1.5 shrink-0">
@@ -579,9 +690,9 @@
                         : "bg-white border-amber-300 text-amber-900"
                     }">${r.seb ? "✓ Seb" : "Seb"}</button>
                   </div>
-                </div>
-              `;
-            }).join("")}
+                `}
+              </div>
+            `).join("")}
           </div>
         </section>
       `;
@@ -594,52 +705,11 @@
       const lastLabel = days[days.length - 1]?.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" }) || "";
       const colCount = days.length;
 
-      const controlsBar = `
-        <div class="flex flex-wrap items-center justify-between gap-2 bg-white rounded-2xl border border-slate-200 px-3.5 py-2.5 shadow-2xs">
-          <div class="flex flex-wrap items-center gap-2">
-            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
-              <button onclick="shiftWindow(-1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&lsaquo;</button>
-              <button onclick="goThisWeekMonday()" class="px-2.5 h-8 rounded-lg hover:bg-white text-xs font-bold text-slate-800">Mon</button>
-              <button onclick="shiftWindow(1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&rsaquo;</button>
-            </div>
-
-            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
-              <button onclick="setStep(7)" class="px-2.5 h-8 rounded-lg text-xs font-bold transition ${stepDays === 7 ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600"}">7d</button>
-              <button onclick="setStep(1)" class="px-2.5 h-8 rounded-lg text-xs font-bold transition ${stepDays === 1 ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600"}">1d</button>
-            </div>
-
-            <button onclick="toggleWeekend()" class="h-8 px-3 rounded-xl border text-xs font-bold transition ${
-              state.showWeekend ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-            }">
-              ${state.showWeekend ? "Weekend: On" : "Weekend: Off"}
-            </button>
-
-            <span class="text-sm font-extrabold text-slate-900 ml-1">${firstLabel} – ${lastLabel}</span>
-          </div>
-
-          <div class="flex items-center gap-2">
-            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
-              <button onclick="setViewMode('list')" class="px-3 h-8 rounded-lg text-xs font-bold transition ${viewMode === "list" ? "bg-slate-900 text-white shadow-2xs" : "text-slate-700"}">List Cards</button>
-              <button onclick="setViewMode('grid')" class="px-3 h-8 rounded-lg text-xs font-bold transition ${viewMode === "grid" ? "bg-slate-900 text-white shadow-2xs" : "text-slate-700"}">Time Grid</button>
-            </div>
-
-            <button onclick="toggleMorningRoutineDrawer()" class="flex items-center gap-2 h-8 px-3 rounded-xl border text-xs font-bold transition ${
-              state.showMorningRoutine ? "bg-emerald-50 border-emerald-300 text-emerald-900" : "bg-white border-slate-200 text-slate-700"
-            }">
-              <span>Morning Routine</span>
-              <span class="w-7 h-4 rounded-full p-0.5 flex items-center transition ${state.showMorningRoutine ? "bg-emerald-500 justify-end" : "bg-slate-300 justify-start"}">
-                <span class="w-3 h-3 rounded-full bg-white block"></span>
-              </span>
-            </button>
-          </div>
-        </div>
-      `;
-
       let calendarBody = "";
 
       if (viewMode === "list") {
         calendarBody = `
-          <div class="smooth-scroll overflow-auto max-h-[calc(100vh-195px)] rounded-2xl">
+          <div class="smooth-scroll overflow-auto flex-1 min-h-[420px] max-h-[calc(100vh-210px)] rounded-2xl">
             <div class="grid gap-3 min-h-[560px]" style="grid-template-columns: repeat(${colCount}, minmax(210px, 1fr))">
               ${days.map((d) => {
                 const k = dateKey(d);
@@ -652,7 +722,7 @@
                         <span class="text-sm font-extrabold text-slate-900">${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}</span>
                         ${isToday ? '<span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 text-[10px] font-extrabold uppercase">Today</span>' : ""}
                       </div>
-                      ${renderOfficeTogglePair(k)}
+                      ${renderOfficeTogglePair(d)}
                     </div>
 
                     <div class="p-2.5 flex flex-col gap-2 flex-1">
@@ -685,21 +755,20 @@
         const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
 
         calendarBody = `
-          <div class="smooth-scroll bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-auto max-h-[calc(100vh-195px)]">
+          <div class="smooth-scroll bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-auto flex-1 min-h-[420px] max-h-[calc(100vh-210px)]">
             <div class="min-w-[820px]">
               <!-- Sticky Day + Office/WFH Header Row inside scroll pane -->
               <div class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-200 px-3 pt-2.5 pb-2 grid gap-2" style="grid-template-columns: 60px repeat(${colCount}, minmax(0, 1fr))">
                 <div class="text-[10px] font-bold uppercase text-slate-400 self-end pb-1">Time</div>
                 ${days.map((d) => {
-                  const k = dateKey(d);
-                  const isToday = k === todayKey;
+                  const isToday = dateKey(d) === todayKey;
                   return `
                     <div class="px-1">
                       <div class="flex items-center gap-1.5">
                         <span class="text-sm font-extrabold text-slate-900">${d.toLocaleDateString([], { weekday: "short", day: "numeric", month: "short" })}</span>
                         ${isToday ? '<span class="px-1.5 py-0.5 rounded bg-sky-100 text-sky-700 text-[10px] font-extrabold uppercase">Today</span>' : ""}
                       </div>
-                      ${renderOfficeTogglePair(k)}
+                      ${renderOfficeTogglePair(d)}
                     </div>
                   `;
                 }).join("")}
@@ -738,27 +807,29 @@
 
                 ${days.map((d) => {
                   const timed = getEventsForDay(d).filter((e) => !e.allDay);
+                  const laidOut = layoutTimedEvents(timed);
                   return `
                     <div class="relative rounded-xl bg-slate-50/50 border border-slate-200/70" style="height:${gridH}px">
                       ${hours.map((h) => `<div style="top:${(h - startHour) * hourH}px" class="absolute inset-x-0 border-t border-slate-200/70"></div>`).join("")}
-                      ${timed.map((ev) => {
+                      ${laidOut.map(({ ev, col, cols }) => {
                         const m = memberObj(ev.memberId);
-                        const overlap = hasOverlap(ev, timed);
                         const s = new Date(ev.start);
                         const e = new Date(ev.end || ev.start);
                         const sDec = Math.max(startHour, s.getHours() + s.getMinutes() / 60);
                         const eDec = Math.min(endHour, Math.max(sDec + 0.5, e.getHours() + e.getMinutes() / 60));
                         const topPx = (sDec - startHour) * hourH;
                         const hPx = Math.max(30, (eDec - sDec) * hourH);
+                        const widthPct = 100 / cols;
+                        const leftPct = col * widthPct;
 
                         return `
-                          <div style="top:${topPx}px;height:${hPx}px" class="absolute ${overlap ? "left-1.5 right-5" : "left-1 right-1"} rounded-xl border px-2.5 py-1.5 overflow-hidden ${m.card} shadow-2xs">
+                          <div style="top:${topPx}px;height:${hPx}px;left:calc(${leftPct}% + 3px);width:calc(${widthPct}% - 6px)" class="absolute rounded-xl border px-2 py-1.5 overflow-hidden ${m.card} shadow-2xs">
                             <div class="flex items-start justify-between gap-1">
                               <div class="min-w-0">
-                                <div class="text-xs font-extrabold truncate">${esc(ev.title)}</div>
+                                <div class="text-xs font-extrabold leading-tight truncate">${esc(ev.title)}</div>
                                 <div class="text-[11px] opacity-80 truncate">${fmtRange(ev)}</div>
                               </div>
-                              <span class="w-5 h-5 rounded-full text-[10px] font-extrabold flex items-center justify-center shrink-0 ${m.badgeBg}">${m.badge}</span>
+                              <span class="w-4 h-4 rounded-full text-[9px] font-extrabold flex items-center justify-center shrink-0 ${m.badgeBg}">${m.badge}</span>
                             </div>
                           </div>
                         `;
@@ -772,7 +843,48 @@
         `;
       }
 
-      document.getElementById("mainContent").innerHTML = controlsBar + renderMorningRoutineBar() + calendarBody;
+      const bottomToolbar = `
+        <div class="sticky bottom-0 z-20 flex flex-wrap items-center justify-between gap-2 bg-white/95 backdrop-blur rounded-2xl border border-slate-200 px-3.5 py-2.5 shadow-xs">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
+              <button onclick="shiftWindow(-1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&lsaquo;</button>
+              <button onclick="goToday()" class="px-2.5 h-8 rounded-lg hover:bg-white text-xs font-bold text-slate-800">Today</button>
+              <button onclick="shiftWindow(1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&rsaquo;</button>
+            </div>
+
+            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
+              <button onclick="setStep(7)" class="px-2.5 h-8 rounded-lg text-xs font-bold transition ${stepDays === 7 ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600"}">7d</button>
+              <button onclick="setStep(1)" class="px-2.5 h-8 rounded-lg text-xs font-bold transition ${stepDays === 1 ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600"}">1d</button>
+            </div>
+
+            <button onclick="toggleWeekend()" class="h-8 px-3 rounded-xl border text-xs font-bold transition ${
+              state.showWeekend ? "bg-sky-50 border-sky-300 text-sky-900" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+            }">
+              ${state.showWeekend ? "Weekend: On" : "Weekend: Off"}
+            </button>
+
+            <span class="text-sm font-extrabold text-slate-900 ml-1">${firstLabel} – ${lastLabel}</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
+              <button onclick="setViewMode('list')" class="px-3 h-8 rounded-lg text-xs font-bold transition ${viewMode === "list" ? "bg-sky-100 text-sky-950 shadow-2xs" : "text-slate-700"}">List Cards</button>
+              <button onclick="setViewMode('grid')" class="px-3 h-8 rounded-lg text-xs font-bold transition ${viewMode === "grid" ? "bg-sky-100 text-sky-950 shadow-2xs" : "text-slate-700"}">Time Grid</button>
+            </div>
+
+            <button onclick="toggleMorningRoutineDrawer()" class="flex items-center gap-2 h-8 px-3 rounded-xl border text-xs font-bold transition ${
+              state.showMorningRoutine ? "bg-sky-50 border-sky-300 text-sky-900" : "bg-white border-slate-200 text-slate-700"
+            }">
+              <span>Morning Routine</span>
+              <span class="w-7 h-4 rounded-full p-0.5 flex items-center transition ${state.showMorningRoutine ? "bg-sky-500 justify-end" : "bg-slate-300 justify-start"}">
+                <span class="w-3 h-3 rounded-full bg-white block"></span>
+              </span>
+            </button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("mainContent").innerHTML = calendarBody + renderMorningRoutineDrawer() + bottomToolbar;
     }
 
     function renderTodo() {
@@ -781,13 +893,13 @@
           <h2 class="text-base font-extrabold text-slate-900">To-Do</h2>
           <form onsubmit="addTodo(event)" class="flex gap-2">
             <input id="todoInput" type="text" placeholder="Add task…" class="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <button class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold">Add</button>
+            <button class="px-4 py-2 rounded-xl bg-sky-600 text-white text-xs font-bold">Add</button>
           </form>
           <ul class="divide-y divide-slate-100">
             ${state.todos.map((t) => `
               <li class="py-2.5 flex items-center justify-between gap-3">
                 <button onclick="toggleTodo('${t.id}')" class="flex items-center gap-2.5 text-left flex-1">
-                  <span class="w-5 h-5 rounded-md border flex items-center justify-center text-xs font-bold ${t.done ? "bg-slate-900 border-slate-900 text-white" : "border-slate-300"}">${t.done ? "✓" : ""}</span>
+                  <span class="w-5 h-5 rounded-md border flex items-center justify-center text-xs font-bold ${t.done ? "bg-sky-600 border-sky-600 text-white" : "border-slate-300"}">${t.done ? "✓" : ""}</span>
                   <span class="text-sm ${t.done ? "line-through text-slate-400" : "text-slate-800"}">${esc(t.text)}</span>
                 </button>
                 <button onclick="delTodo('${t.id}')" class="text-xs text-slate-400 hover:text-rose-600">Remove</button>
@@ -828,7 +940,7 @@
           <form onsubmit="addPlan(event)" class="grid grid-cols-1 md:grid-cols-3 gap-2">
             <input id="planTitle" type="text" placeholder="Plan title…" class="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
             <input id="planNotes" type="text" placeholder="Details…" class="rounded-xl border border-slate-300 px-3 py-2 text-sm" />
-            <button class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold">Add Plan</button>
+            <button class="px-4 py-2 rounded-xl bg-sky-600 text-white text-xs font-bold">Add Plan</button>
           </form>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             ${state.plans.map((p) => `
