@@ -24,39 +24,19 @@
 <body class="min-h-screen flex flex-col">
   <!-- Sticky Top Dashboard Header -->
   <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3">
-    <div class="max-w-[1680px] mx-auto flex flex-wrap items-center justify-between gap-3">
-      <!-- Top-Left Calendar Title -->
+    <div class="max-w-[1680px] mx-auto flex flex-wrap items-center justify-between gap-4">
+      <!-- Top-Left Calendar Title Only -->
       <div class="flex items-center">
         <h1 class="text-2xl sm:text-[28px] font-extrabold tracking-tight text-slate-900 leading-tight">The Warren Family</h1>
       </div>
 
-      <!-- Top-Right Navigation + Date/Time + Weather -->
-      <div class="flex flex-wrap items-center justify-end gap-3 sm:gap-4">
-        <!-- Navigation Controls (Top-Right, no date range label) -->
-        <div id="topNavControls" class="flex flex-wrap items-center gap-2">
-          <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
-            <button onclick="shiftWindow(-1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&lsaquo;</button>
-            <button onclick="goToday()" class="px-2.5 h-8 rounded-lg hover:bg-white text-xs font-bold text-slate-800">Today</button>
-            <button onclick="shiftWindow(1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&rsaquo;</button>
-          </div>
-
-          <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
-            <button id="step7Btn" onclick="setStep(7)" class="px-2.5 h-8 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-2xs">7d</button>
-            <button id="step1Btn" onclick="setStep(1)" class="px-2.5 h-8 rounded-lg text-xs font-bold transition text-slate-600">1d</button>
-          </div>
-
-          <button id="weekendToggleBtn" onclick="toggleWeekend()" class="h-8 px-3 rounded-xl border text-xs font-bold transition bg-white border-slate-200 text-slate-700 hover:bg-slate-50">
-            Weekend: Off
-          </button>
-        </div>
-
-        <!-- Date / Time -->
-        <div class="text-right border-l border-slate-200 pl-3 sm:pl-4">
+      <!-- Top-Right Date/Time + Weather Only -->
+      <div class="flex items-center gap-4">
+        <div class="text-right">
           <div id="liveClock" class="text-2xl sm:text-[26px] font-extrabold tracking-tight text-slate-900 leading-none">20:15</div>
           <div id="liveDateLine" class="text-sm font-semibold text-slate-600 mt-1">Friday 27 Nov</div>
         </div>
 
-        <!-- Weather -->
         <div class="flex items-center gap-2.5 bg-amber-50/80 border border-amber-200/80 rounded-2xl px-3.5 py-2">
           <span class="text-xl leading-none">☀️</span>
           <div>
@@ -187,7 +167,7 @@
       { id: "r5", icon: "👟", label: "Shoes on", hamish: false, seb: false }
     ];
 
-    const STORAGE_KEY = "my_family_calendar_state_v6";
+    const STORAGE_KEY = "my_family_calendar_state_v7";
     const FALLBACK_EVENTS = buildSampleEvents();
 
     let state = loadState();
@@ -199,6 +179,7 @@
     let liveEvents = [];
     let feedStatuses = [];
     let usingFallback = true;
+    let lastErrorMessage = "";
 
     function getMondayWeekOffset() {
       const now = new Date();
@@ -310,8 +291,19 @@
         hideLocation: state.privacy.hideLocation ? "1" : "0",
         ...(forceRefresh ? { refresh: "1" } : {})
       });
-      const res = await fetch(`/api/calendar/events?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to load family calendar feed");
+      const res = await fetch(`/api/calendar/events?${params.toString()}`, {
+        redirect: "manual"
+      });
+      if (res.type === "opaqueredirect" || res.status === 302) {
+        throw new Error("Redirected by auth or Worker");
+      }
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status} from /api/calendar/events`);
+      }
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        throw new Error("Endpoint did not return JSON");
+      }
       return await res.json();
     }
 
@@ -323,14 +315,16 @@
           liveEvents = data.events;
           feedStatuses = Array.isArray(data.feeds) ? data.feeds : [];
           usingFallback = false;
+          lastErrorMessage = "";
           const t = new Date(data.syncedAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
           setSyncText(`Synced ${t}`);
         } else {
-          throw new Error("Bad response");
+          throw new Error("Invalid events payload");
         }
-      } catch (_) {
+      } catch (err) {
         liveEvents = FALLBACK_EVENTS;
         usingFallback = true;
+        lastErrorMessage = err?.message || "Failed to load live feeds";
         setSyncText("Sample data");
       }
       render();
@@ -617,34 +611,14 @@
       render();
     }
 
-    function syncTopControls() {
-      const topNav = document.getElementById("topNavControls");
-      if (topNav) {
-        topNav.style.display = activeSection === "schedule" ? "flex" : "none";
-      }
-
-      const s7 = document.getElementById("step7Btn");
-      const s1 = document.getElementById("step1Btn");
-      if (s7 && s1) {
-        s7.className = `px-2.5 h-8 rounded-lg text-xs font-bold transition ${stepDays === 7 ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600"}`;
-        s1.className = `px-2.5 h-8 rounded-lg text-xs font-bold transition ${stepDays === 1 ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600"}`;
-      }
-
-      const wk = document.getElementById("weekendToggleBtn");
-      if (wk) {
-        wk.textContent = state.showWeekend ? "Weekend: On" : "Weekend: Off";
-        wk.className = `h-8 px-3 rounded-xl border text-xs font-bold transition ${
-          state.showWeekend ? "bg-sky-50 border-sky-300 text-sky-900" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-        }`;
-      }
-
+    function syncBadges() {
       const todoBadge = document.getElementById("todoBadge");
       if (todoBadge) {
         todoBadge.textContent = String(state.todos.filter((t) => !t.done).length);
       }
     }
 
-    function renderMemberFilterRow() {
+    function renderFilterAndNavBar() {
       const allSelected = state.selectedMembers.length === MEMBERS.length;
 
       const allBtn = `
@@ -670,9 +644,33 @@
         `;
       }).join("");
 
+      const navRight = `
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
+            <button onclick="shiftWindow(-1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&lsaquo;</button>
+            <button onclick="goToday()" class="px-2.5 h-8 rounded-lg hover:bg-white text-xs font-bold text-slate-800">Today</button>
+            <button onclick="shiftWindow(1)" class="w-8 h-8 rounded-lg hover:bg-white font-bold text-slate-700">&rsaquo;</button>
+          </div>
+
+          <div class="flex items-center bg-slate-100 p-0.5 rounded-xl">
+            <button onclick="setStep(7)" class="px-2.5 h-8 rounded-lg text-xs font-bold transition ${stepDays === 7 ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600"}">7d</button>
+            <button onclick="setStep(1)" class="px-2.5 h-8 rounded-lg text-xs font-bold transition ${stepDays === 1 ? "bg-white text-slate-900 shadow-2xs" : "text-slate-600"}">1d</button>
+          </div>
+
+          <button onclick="toggleWeekend()" class="h-8 px-3 rounded-xl border text-xs font-bold transition ${
+            state.showWeekend ? "bg-sky-50 border-sky-300 text-sky-900" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+          }">
+            ${state.showWeekend ? "Weekend: On" : "Weekend: Off"}
+          </button>
+        </div>
+      `;
+
       return `
-        <div class="flex flex-wrap items-center gap-2 bg-white rounded-2xl border border-slate-200 px-3.5 py-2 shadow-2xs">
-          ${allBtn + memberBtns}
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-white rounded-2xl border border-slate-200 px-3.5 py-2 shadow-2xs">
+          <div class="flex flex-wrap items-center gap-2">
+            ${allBtn + memberBtns}
+          </div>
+          ${navRight}
         </div>
       `;
     }
@@ -907,7 +905,7 @@
       `;
 
       document.getElementById("mainContent").innerHTML =
-        renderMemberFilterRow() +
+        renderFilterAndNavBar() +
         calendarBody +
         renderMorningRoutineDrawer() +
         bottomToolbar;
@@ -1022,7 +1020,9 @@
             <input type="checkbox" ${state.privacy.hideLocation ? "checked" : ""} onchange="setPriv('hideLocation', this.checked)" class="w-4 h-4" />
           </label>
           <div class="text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-700">
-            ${usingFallback ? "Showing sample data. Add ICS secrets in Runtime variables and secrets." : esc(JSON.stringify(feedStatuses))}
+            ${usingFallback
+              ? `Showing sample data (${esc(lastErrorMessage || "check ICS secrets / Worker deployment")}).`
+              : esc(JSON.stringify(feedStatuses))}
           </div>
         </section>
       `;
@@ -1040,7 +1040,7 @@
 
     function render() {
       updateClock();
-      syncTopControls();
+      syncBadges();
       if (activeSection === "schedule") renderSchedule();
       else if (activeSection === "todo") renderTodo();
       else if (activeSection === "plans") renderPlans();
